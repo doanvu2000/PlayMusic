@@ -17,6 +17,7 @@ import com.example.musicplayer.receiver.NotificationReceiver
 import com.example.musicplayer.service.MusicService
 import kotlinx.android.synthetic.main.activity_play_music.*
 import java.lang.Exception
+import kotlin.random.Random
 
 
 class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCompletionListener {
@@ -143,6 +144,12 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 repeatOne = false
                 btnRepeatOne.setColorFilter(ContextCompat.getColor(this, R.color.white))
             }
+        }
+
+        btnShuffleSong.setOnClickListener {
+            indexSong = Random.nextInt(0, musicList.size)
+            song = musicList[indexSong]
+            createMedia()
         }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {

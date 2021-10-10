@@ -161,10 +161,10 @@
     </LinearLayout>
 
     <ImageView
-        android:id="@+id/btnRepeatAll"
+        android:id="@+id/btnShuffleSong"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:src="@drawable/ic_repeat_all"
+        android:src="@drawable/ic_shuffle"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="@id/vertical_2"
         app:layout_constraintRight_toRightOf="parent"
