@@ -28,7 +28,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.88" />
+        app:layout_constraintGuide_percent="0.9" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/vertical_1"
@@ -121,6 +121,7 @@
         android:id="@+id/btnRepeatOne"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginLeft="10dp"
         android:src="@drawable/ic_repeat_one"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -164,6 +165,7 @@
         android:id="@+id/btnShuffleSong"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginRight="10dp"
         android:src="@drawable/ic_shuffle"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="@id/vertical_2"
