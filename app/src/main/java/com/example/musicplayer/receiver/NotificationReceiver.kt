@@ -10,6 +10,7 @@ import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
 import com.example.musicplayer.activity.PlayMusicActivity
 import com.example.musicplayer.service.MusicService
+import kotlin.random.Random
 import kotlin.system.exitProcess
 
 class NotificationReceiver : BroadcastReceiver() {
@@ -17,19 +18,15 @@ class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         when (intent?.action) {
             ApplicationClass.PREVIOUS -> {
-                Log.d(TAG, "previous ")
                 previousSong(context!!)
             }
             ApplicationClass.PLAY -> {
                 if (PlayMusicActivity.isPlaying) pauseMusic(context!!) else playMusic(context!!)
-                Log.d(TAG, "play ")
             }
             ApplicationClass.NEXT -> {
-                Log.d(TAG, "next ")
                 nextSong(context!!)
             }
             ApplicationClass.EXIT -> {
-                Log.d(TAG, "exit ")
                 PlayMusicActivity.musicService!!.stopForeground(true)
                 PlayMusicActivity.musicService = null
                 exitProcess(1)
@@ -62,8 +59,11 @@ class NotificationReceiver : BroadcastReceiver() {
     private fun previousSong(context: Context) {
         val intentChanged = Intent("ChangedSong")
         var index = PlayMusicActivity.indexSong
-        if (index > 0) index-- else index = PlayMusicActivity.musicList.size - 1
+        if (!PlayMusicActivity.isShuffle) {
+            if (index > 0) index-- else index = PlayMusicActivity.musicList.size - 1
+        } else index = Random.nextInt(0, PlayMusicActivity.musicList.size)
         intentChanged.putExtra("indexSong", index)
+        intentChanged.putExtra("flag", "previous")
         LocalBroadcastManager.getInstance(context).sendBroadcast(intentChanged)
 
     }
@@ -71,8 +71,11 @@ class NotificationReceiver : BroadcastReceiver() {
     private fun nextSong(context: Context) {
         val intentChanged = Intent("ChangedSong")
         var index = PlayMusicActivity.indexSong
-        if (index < PlayMusicActivity.musicList.size - 1) index++ else index = 0
+        if (!PlayMusicActivity.isShuffle) {
+            if (index < PlayMusicActivity.musicList.size - 1) index++ else index = 0
+        } else index = Random.nextInt(0, PlayMusicActivity.musicList.size)
         intentChanged.putExtra("indexSong", index)
+        intentChanged.putExtra("flag", "next")
         LocalBroadcastManager.getInstance(context).sendBroadcast(intentChanged)
     }
 }

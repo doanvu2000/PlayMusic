@@ -23,14 +23,19 @@ import kotlin.random.Random
 class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCompletionListener {
     override fun onCompletion(p0: MediaPlayer?) {
         if (!repeatOne) {
-            if (indexSong < musicList.size - 1) {
-                indexSong++
-                song = musicList[indexSong]
-            } else {
-                indexSong = 0
-                song = musicList[indexSong]
+            when {
+                isShuffle -> {
+                    indexSong = Random.nextInt(0, musicList.size)
+                }
+                indexSong < musicList.size - 1 -> {
+                    indexSong++
+                }
+                else -> {
+                    indexSong = 0
+                }
             }
         }
+        song = musicList[indexSong]
         createMedia()
     }
 
@@ -55,7 +60,6 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
     }
 
     private val TAG = "PlayMusicActivity"
-    var currentTimePlay = 0
 
     var broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -79,6 +83,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         var isPlaying: Boolean = false
         var musicService: MusicService? = null
         var repeatOne = false
+        var isShuffle = false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,17 +95,33 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             .registerReceiver(broadcastReceiver, IntentFilter("ChangedSong"))
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastPlayPause, IntentFilter("play_pause"))
-        //start service
-        val intentService = Intent(this, MusicService::class.java)
-        bindService(intentService, this, BIND_AUTO_CREATE)
-        startService(intentService)
-
+        val flag = intent.getStringExtra("flagMain")
+        if (flag != "resumePlay") { //start service
+            val intentService = Intent(this, MusicService::class.java)
+            bindService(intentService, this, BIND_AUTO_CREATE)
+            startService(intentService)
+        } else {
+            currentTime.text = timerConversion(musicService!!.mediaPlayer!!.currentPosition)
+            totalTime.text = timerConversion(musicService!!.mediaPlayer!!.duration)
+            seekBar.max = musicService!!.mediaPlayer!!.duration
+            seekBar.progress = musicService!!.mediaPlayer!!.currentPosition
+            var currentPos = 0
+            val handler = Handler(Looper.getMainLooper())
+            val runnable = object : Runnable {
+                override fun run() {
+                    currentPos = musicService!!.mediaPlayer!!.currentPosition
+                    currentTime.text = timerConversion(currentPos)
+                    seekBar.progress = currentPos
+                    handler.postDelayed(this, 1000)
+                }
+            }
+            handler.postDelayed(runnable, 1000)
+        }
 
         indexSong = intent.getIntExtra("indexSong", 0)
         musicList = ArrayList()
         musicList.addAll(MainActivity.musicList)
         song = musicList[indexSong]
-        Log.d("TAG", "${musicList.size} ")
         if (song != null) {
             tvNameSong.text = song!!.name
         }
@@ -114,26 +135,30 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             else playAudio()
         }
         btnPrevious.setOnClickListener {
-            if (indexSong > 0) {
-                indexSong--
-                song = musicList[indexSong]
-                createMedia()
-            } else {
-                indexSong = musicList.size - 1
-                song = musicList[indexSong]
-                createMedia()
+            if (!isShuffle) {
+                if (indexSong > 0) {
+                    indexSong--
+                } else {
+                    indexSong = musicList.size - 1
+                }
+            }else{
+                indexSong = Random.nextInt(0, musicList.size)
             }
+            song = musicList[indexSong]
+            createMedia()
         }
         btnNext.setOnClickListener {
-            if (indexSong < musicList.size - 1) {
-                indexSong++
-                song = musicList[indexSong]
-                createMedia()
-            } else {
-                indexSong = 0
-                song = musicList[indexSong]
-                createMedia()
+            if (!isShuffle) {
+                if (indexSong < musicList.size - 1) {
+                    indexSong++
+                } else {
+                    indexSong = 0
+                }
+            }else{
+                indexSong = Random.nextInt(0, musicList.size)
             }
+            song = musicList[indexSong]
+            createMedia()
         }
 
         btnRepeatOne.setOnClickListener {
@@ -147,9 +172,12 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         }
 
         btnShuffleSong.setOnClickListener {
-            indexSong = Random.nextInt(0, musicList.size)
-            song = musicList[indexSong]
-            createMedia()
+            isShuffle = !isShuffle
+            if(isShuffle){
+                btnShuffleSong.setColorFilter(ContextCompat.getColor(this, R.color.purple_500))
+            }else{
+                btnShuffleSong.setColorFilter(ContextCompat.getColor(this, R.color.white))
+            }
         }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -165,7 +193,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         })
     }
 
-    private fun createMedia() {
+    fun createMedia() {
         try {
             if (musicService!!.mediaPlayer == null) {
                 musicService!!.mediaPlayer = MediaPlayer()

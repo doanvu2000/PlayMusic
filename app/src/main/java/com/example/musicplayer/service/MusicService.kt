@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
+import com.example.musicplayer.activity.MainActivity
 import com.example.musicplayer.activity.PlayMusicActivity
 import com.example.musicplayer.receiver.NotificationReceiver
 import kotlinx.android.synthetic.main.activity_play_music.*
@@ -68,8 +69,12 @@ class MusicService : Service() {
             this, 0, exitIntent,
             PendingIntent.FLAG_UPDATE_CURRENT
         )
-
+        val intent = Intent(this, MainActivity::class.java)
+        intent.putExtra("indexSong", PlayMusicActivity.indexSong)
+        intent.putExtra("flagMain", "resumePlay")
+        val mainIntent = PendingIntent.getActivity(this, 0, intent, 0)
         val notification = NotificationCompat.Builder(this, ApplicationClass.CHANNEL_ID)
+            .setContentIntent(mainIntent)
             .setContentTitle(PlayMusicActivity.musicList[PlayMusicActivity.indexSong].name)
             .setContentText(PlayMusicActivity.musicList[PlayMusicActivity.indexSong].author)
             .setSmallIcon(R.drawable.musical_note)
@@ -87,7 +92,6 @@ class MusicService : Service() {
             .addAction(R.drawable.ic_baseline_close_24, "Exit", exitPendingIntent)
             .build()
         startForeground(1, notification)
-        Log.d("Activity", "showNotification")
     }
 
     fun createMedia() {

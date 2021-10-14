@@ -1,7 +1,10 @@
 package com.example.musicplayer.activity
 
 import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.net.Uri
@@ -13,12 +16,14 @@ import android.widget.SearchView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.musicplayer.R
 import com.example.musicplayer.`object`.MusicAudio
 import com.example.musicplayer.adapter.MusicAdapter
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.fragment_now_playing.*
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
@@ -30,6 +35,43 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         var musicList: MutableList<MusicAudio> = ArrayList()
+        var searchList: MutableList<MusicAudio> = ArrayList()
+    }
+
+    val broadcastPlayPause = object : BroadcastReceiver() {
+        override fun onReceive(p0: Context?, p1: Intent?) {
+            val flag = p1?.getStringExtra("flag")
+            if (flag == "play") btnPlayPauseNP.setImageResource(R.drawable.ic_pause) else btnPlayPauseNP.setImageResource(
+                R.drawable.ic_play
+            )
+        }
+    }
+
+    private val broadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(p0: Context?, p1: Intent?) {
+            val flag = p1?.getStringExtra("flag")
+            var index = PlayMusicActivity.indexSong
+            if (PlayMusicActivity.isShuffle) index =
+                Random.nextInt(0, PlayMusicActivity.musicList.size)
+            else {
+                if (flag == "next") {
+                    if (index < PlayMusicActivity.musicList.size - 1) {
+                        index++
+                    } else {
+                        index = 0
+                    }
+                } else if (flag == "previous") {
+                    if (index > 0)
+                        index--
+                    else index = PlayMusicActivity.musicList.size - 1
+                }
+            }
+            PlayMusicActivity.indexSong = index
+            songNameNP.text = PlayMusicActivity.musicList[index].name
+            PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
+            PlayMusicActivity.musicService!!.createMedia()
+            PlayMusicActivity.musicService!!.mediaPlayer!!.start()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,6 +82,10 @@ class MainActivity : AppCompatActivity() {
         if (checkPermission()) {
             loadSong()
         }
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(broadcastPlayPause, IntentFilter("play_pause"))
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(broadcastReceiver, IntentFilter("ChangedSong"))
         rcvListSong.layoutManager = LinearLayoutManager(this)
         rcvListSong.adapter = musicAdapter
         rcvListSong.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
@@ -47,39 +93,24 @@ class MainActivity : AppCompatActivity() {
             //intent to PlayMusicActivity
             val intent = Intent(this, PlayMusicActivity::class.java)
             intent.putExtra("song", listSong[it])
-            intent.putExtra("indexSong", it)
-            startActivity(intent)
-        }
-        btnShuffle.setOnClickListener {
-            val intent = Intent(this, PlayMusicActivity::class.java)
-            var random = -1
-            while (random < 0 || random == listSong.size) {
-                random = Random.nextInt(0, listSong.size)
-            }
-            intent.putExtra("indexSong", random)
+            intent.putExtra("indexSong", listSong.indexOf(searchList[it]))
             startActivity(intent)
         }
         search_bar.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
             androidx.appcompat.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(p0: String?): Boolean {
-
-
                 search_bar.clearFocus()
                 return false
             }
 
             override fun onQueryTextChange(p0: String?): Boolean {
                 if (p0 != null) {
-                    var searchList: MutableList<MusicAudio> = ArrayList()
-                    Log.d(TAG, "${musicList.size} ")
                     searchList = musicList.filter { song ->
                         song.name.lowercase().contains(p0!!)
                     } as MutableList<MusicAudio>
-                    Log.d(TAG, "onQueryTextChange: $searchList")
                     musicAdapter.listSong = searchList
                     musicAdapter.notifyDataSetChanged()
                 }
-
                 return true
             }
         })
@@ -100,6 +131,7 @@ class MainActivity : AppCompatActivity() {
         }
         cursor!!.close()
         musicAdapter.notifyDataSetChanged()
+        searchList = listSong
         musicList = listSong
     }
 
@@ -143,5 +175,11 @@ class MainActivity : AppCompatActivity() {
             PlayMusicActivity.musicService = null
             exitProcess(1)
         }
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastPlayPause)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
+    }
+
+    private fun indexOnSearchList(song: MusicAudio): Int {
+        return listSong.indexOf(song)
     }
 }
