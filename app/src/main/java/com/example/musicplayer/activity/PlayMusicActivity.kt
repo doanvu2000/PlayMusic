@@ -12,14 +12,21 @@ import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
-import com.example.musicplayer.`object`.MusicAudio
+import com.example.musicplayer.adapter.SongRecommendAdapter
+import com.example.musicplayer.api.ApiChartRealtime
 import com.example.musicplayer.model.Song
+import com.example.musicplayer.model.apisearch.Item
+import com.example.musicplayer.model.apisearch.MusicRecommend
 import com.example.musicplayer.receiver.NotificationReceiver
 import com.example.musicplayer.service.MusicService
 import kotlinx.android.synthetic.main.activity_play_music.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.lang.Exception
 import kotlin.random.Random
 
@@ -40,13 +47,13 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             }
         }
         song = musicList[indexSong]
-        createMedia()
+        createMedia(song!!.id, song!!.name, song!!.artists_names, song!!.thumbnail, song!!.duration)
     }
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
         val binder = service as MusicService.MyBinder
         musicService = binder.currentService()
-        createMedia()
+        createMedia(song!!.id, song!!.name, song!!.artists_names, song!!.thumbnail, song!!.duration)
 //        musicService!!.showNotification(R.drawable.ic_pause)
     }
 
@@ -70,7 +77,13 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             indexSong = intent!!.getIntExtra("indexSong", 0)
             song = musicList[indexSong]
             Log.d(TAG, "onReceive: ${song?.name}")
-            createMedia()
+            createMedia(
+                song!!.id,
+                song!!.name,
+                song!!.artists_names,
+                song!!.thumbnail,
+                song!!.duration
+            )
         }
     }
     var broadcastPlayPause = object : BroadcastReceiver() {
@@ -90,6 +103,10 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         var repeatOne = false
         var isShuffle = false
         var song: Song? = null
+        var recommendList: MutableList<Item> = ArrayList()
+        lateinit var recommendAdapter: SongRecommendAdapter
+        var currentSongName: String = ""
+        var currentSongArtist: String = ""
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -139,7 +156,8 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             val url = song!!.thumbnail
             val token = url.split("/")
             val rm = token[3]
-            val shortUrl = url.substring(0,url.indexOf(rm))+url.substring(url.indexOf(rm)+rm.length+1)
+            val shortUrl =
+                url.substring(0, url.indexOf(rm)) + url.substring(url.indexOf(rm) + rm.length + 1)
             Glide.with(this).load(shortUrl).into(imageSongPlay)
         }
 
@@ -162,7 +180,13 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 indexSong = Random.nextInt(0, musicList.size)
             }
             song = musicList[indexSong]
-            createMedia()
+            createMedia(
+                song!!.id,
+                song!!.name,
+                song!!.artists_names,
+                song!!.thumbnail,
+                song!!.duration
+            )
         }
         btnNext.setOnClickListener {
             if (!isShuffle) {
@@ -175,7 +199,13 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 indexSong = Random.nextInt(0, musicList.size)
             }
             song = musicList[indexSong]
-            createMedia()
+            createMedia(
+                song!!.id,
+                song!!.name,
+                song!!.artists_names,
+                song!!.thumbnail,
+                song!!.duration
+            )
         }
 
         btnRepeatOne.setOnClickListener {
@@ -208,35 +238,83 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             override fun onStopTrackingTouch(p0: SeekBar?) {
             }
         })
+        //call api recommend
+        getListRecommend(song!!.id)
+        recommendAdapter = SongRecommendAdapter(recommendList, this)
+        rcvSongRecommend.adapter = recommendAdapter
+        rcvSongRecommend.layoutManager = LinearLayoutManager(this)
+        recommendAdapter.setOnSongClick {
+            val recommendSong = recommendList[it]
+            createMedia(
+                recommendSong.id,
+                recommendSong.name,
+                recommendSong.artists_names,
+                recommendSong.thumbnail,
+                recommendSong.duration
+            )
+        }
     }
+
+    private fun getListRecommend(id: String) {
+        ApiChartRealtime.api.getSongRecommend("audio", id)
+            .enqueue(object : Callback<MusicRecommend> {
+                override fun onResponse(
+                    call: Call<MusicRecommend>,
+                    response: Response<MusicRecommend>
+                ) {
+                    recommendList.clear()
+                    recommendList.addAll(response.body()!!.data.items)
+                    recommendAdapter.notifyDataSetChanged()
+                }
+
+                override fun onFailure(call: Call<MusicRecommend>, t: Throwable) {
+                    Log.e(TAG, "error on call api recommend: ${t.message}")
+                }
+            })
+    }
+
 
     private fun getUrlPlayOnline(id: String): Uri {
         return Uri.parse("http://api.mp3.zing.vn/api/streaming/audio/$id/320")
     }
 
-    fun createMedia() {
+    fun createMedia(
+        id: String,
+        name: String,
+        artistsNames: String,
+        urlImage: String,
+        duration: Int
+    ) {
         try {
             if (musicService!!.mediaPlayer == null) {
                 musicService!!.mediaPlayer = MediaPlayer()
             }
             musicService!!.mediaPlayer!!.reset()
-            tvNameSong.text = song!!.name
-            tvArtistsPlay.text = song!!.artists_names
-            val url = song!!.thumbnail
-            val token = url.split("/")
+            tvNameSong.text = name
+            currentSongName = name
+
+            tvArtistsPlay.text = artistsNames
+            currentSongArtist = artistsNames
+            val token = urlImage.split("/")
             val rm = token[3]
-            val shortUrl = url.substring(0,url.indexOf(rm))+url.substring(url.indexOf(rm)+rm.length+1)
+            val shortUrl =
+                urlImage.substring(
+                    0,
+                    urlImage.indexOf(rm)
+                ) + urlImage.substring(urlImage.indexOf(rm) + rm.length + 1)
             Glide.with(this).load(shortUrl).into(imageSongPlay)
+            getListRecommend(id)
             //set path
-            musicService!!.mediaPlayer!!.setDataSource(this, getUrlPlayOnline(song!!.id))
+            musicService!!.mediaPlayer!!.setDataSource(this, getUrlPlayOnline(id))
             musicService!!.mediaPlayer!!.prepare()
             musicService!!.mediaPlayer!!.start()
             isPlaying = true
             btnPlay.setImageResource(R.drawable.ic_pause)
             musicService!!.showNotification(R.drawable.ic_pause)
-            setAudioProgress()
+            setAudioProgress(duration)
             musicService!!.mediaPlayer!!.setOnCompletionListener(this)
         } catch (ex: Exception) {
+            Log.e(TAG, "createMedia-error: ${ex.message}")
             return
         }
 
@@ -256,8 +334,8 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         musicService!!.mediaPlayer!!.pause()
     }
 
-    private fun setAudioProgress() {
-        val totalDuration = song!!.duration * 1000
+    private fun setAudioProgress(duration: Int) {
+        val totalDuration = duration * 1000
         var currentPos = musicService!!.mediaPlayer!!.currentPosition
         totalTime.text = timerConversion(totalDuration)
         currentTime.text = timerConversion(currentPos)

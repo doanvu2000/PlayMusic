@@ -1,217 +1,242 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg"
-    tools:context=".activity.PlayMusicActivity"
-    tools:ignore="MissingConstraints">
+    android:orientation="vertical">
 
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/horizontal_1"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.1" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/horizontal_11"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.15" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/horizontal_2"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.75" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/horizontal_3"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.9" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/vertical_1"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.1" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/vertical_2"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.9" />
-
-    <ImageView
-        android:id="@+id/btnBackToHome"
-        android:layout_width="40dp"
         android:layout_height="0dp"
-        android:src="@drawable/ic_back"
-        app:layout_constraintBottom_toTopOf="@+id/horizontal_1"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toLeftOf="@id/layoutInfo"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_weight="7"
+        tools:context=".activity.PlayMusicActivity"
+        tools:ignore="MissingConstraints">
 
-    <LinearLayout
-        android:id="@+id/layoutInfo"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toTopOf="@id/horizontal_1"
-        app:layout_constraintLeft_toRightOf="@id/btnBackToHome"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:id="@+id/tvNameSong"
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/horizontal_1"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="2"
-            android:ellipsize="marquee"
-            android:gravity="center|left"
-            android:marqueeRepeatLimit="marquee_forever"
-            android:paddingHorizontal="10dp"
-            android:singleLine="true"
-            android:text="Song name"
-            android:textColor="#ffffff"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.14" />
 
-        <TextView
-            android:id="@+id/tvArtistsPlay"
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/horizontal_11"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:ellipsize="marquee"
-            android:gravity="center|left"
-            android:marqueeRepeatLimit="marquee_forever"
-            android:paddingHorizontal="10dp"
-            android:singleLine="true"
-            android:text="Song name"
-            android:textColor="#ffffff"
-            android:textSize="14sp" />
-    </LinearLayout>
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.15" />
 
-
-    <ImageView
-        android:scaleType="fitXY"
-        android:id="@+id/imageSongPlay"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginBottom="10dp"
-        app:layout_constraintBottom_toTopOf="@id/horizontal_2"
-        app:layout_constraintLeft_toLeftOf="@id/vertical_1"
-        app:layout_constraintRight_toRightOf="@id/vertical_2"
-        app:layout_constraintTop_toTopOf="@id/horizontal_11" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toTopOf="@id/horizontal_3"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintLeft_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="@id/horizontal_2">
-
-        <SeekBar
-            android:id="@+id/seekBar"
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/horizontal_2"
             android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.75" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/horizontal_3"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.9" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/vertical_1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.1" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/vertical_2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.9" />
+
+        <ImageView
+            android:id="@+id/btnBackToHome"
+            android:layout_width="40dp"
             android:layout_height="0dp"
-            android:layout_marginHorizontal="20dp"
-            android:layout_weight="2" />
+            android:src="@drawable/ic_back"
+            app:layout_constraintBottom_toTopOf="@+id/horizontal_1"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toLeftOf="@id/layoutInfo"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/layoutInfo"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toTopOf="@id/horizontal_1"
+            app:layout_constraintLeft_toRightOf="@id/btnBackToHome"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/tvNameSong"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="2"
+                android:ellipsize="marquee"
+                android:gravity="center|left"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:paddingHorizontal="10dp"
+                android:singleLine="true"
+                android:text="Song name"
+                android:textColor="#ffffff"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvArtistsPlay"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:ellipsize="marquee"
+                android:gravity="center|left"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:paddingHorizontal="10dp"
+                android:singleLine="true"
+                android:text="Song name"
+                android:textColor="#ffffff"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+
+        <ImageView
+            android:id="@+id/imageSongPlay"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginBottom="10dp"
+            android:scaleType="fitXY"
+            app:layout_constraintBottom_toTopOf="@id/horizontal_2"
+            app:layout_constraintLeft_toLeftOf="@id/vertical_1"
+            app:layout_constraintRight_toRightOf="@id/vertical_2"
+            app:layout_constraintTop_toTopOf="@id/horizontal_11" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginHorizontal="20dp"
-            android:layout_weight="3"
-            android:paddingHorizontal="5dp">
+            android:orientation="vertical"
+            app:layout_constraintBottom_toTopOf="@id/horizontal_3"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintLeft_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="@id/horizontal_2">
 
-            <TextView
-                android:id="@+id/currentTime"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center|left"
-                android:text="00:00"
-                android:textColor="#ffffff"
-                android:textSize="16sp" />
+            <SeekBar
+                android:id="@+id/seekBar"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginHorizontal="20dp"
+                android:layout_weight="2" />
 
-            <TextView
-                android:id="@+id/totalTime"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center|right"
-                android:text="20:00"
-                android:textColor="#ffffff"
-                android:textSize="16sp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginHorizontal="20dp"
+                android:layout_weight="3"
+                android:paddingHorizontal="5dp">
+
+                <TextView
+                    android:id="@+id/currentTime"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center|left"
+                    android:text="00:00"
+                    android:textColor="#ffffff"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/totalTime"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center|right"
+                    android:text="20:00"
+                    android:textColor="#ffffff"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
         </LinearLayout>
 
-    </LinearLayout>
-
-    <ImageView
-        android:id="@+id/btnRepeatOne"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginLeft="10dp"
-        android:src="@drawable/ic_repeat_one"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="@id/vertical_1"
-        app:layout_constraintTop_toTopOf="@id/horizontal_3" />
+        <ImageView
+            android:id="@+id/btnRepeatOne"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginLeft="10dp"
+            android:src="@drawable/ic_repeat_one"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="@id/vertical_1"
+            app:layout_constraintTop_toTopOf="@id/horizontal_3" />
 
 
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:padding="10dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="@id/vertical_1"
-        app:layout_constraintRight_toRightOf="@id/vertical_2"
-        app:layout_constraintTop_toTopOf="@id/horizontal_3">
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:padding="10dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="@id/vertical_1"
+            app:layout_constraintRight_toRightOf="@id/vertical_2"
+            app:layout_constraintTop_toTopOf="@id/horizontal_3">
+
+            <ImageView
+                android:id="@+id/btnPrevious"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:src="@drawable/ic_previous" />
+
+            <ImageView
+                android:id="@+id/btnPlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:src="@drawable/ic_pause" />
+
+            <ImageView
+                android:id="@+id/btnNext"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:src="@drawable/ic_next" />
+
+        </LinearLayout>
 
         <ImageView
-            android:id="@+id/btnPrevious"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:src="@drawable/ic_previous" />
+            android:id="@+id/btnShuffleSong"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginRight="10dp"
+            android:src="@drawable/ic_shuffle"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="@id/vertical_2"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="@id/horizontal_3" />
 
-        <ImageView
-            android:id="@+id/btnPlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:src="@drawable/ic_pause" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <ImageView
-            android:id="@+id/btnNext"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:src="@drawable/ic_next" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center|left"
+        android:paddingStart="10dp"
+        android:text="Bài hát liên quan"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:textStyle="bold" />
 
-    </LinearLayout>
-
-    <ImageView
-        android:id="@+id/btnShuffleSong"
-        android:layout_width="0dp"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rcvSongRecommend"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginRight="10dp"
-        android:src="@drawable/ic_shuffle"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="@id/vertical_2"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="@id/horizontal_3" />
+        android:layout_marginTop="20dp"
+        android:layout_weight="3"
+        android:padding="10dp" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

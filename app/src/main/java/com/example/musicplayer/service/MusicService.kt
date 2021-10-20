@@ -91,8 +91,8 @@ class MusicService : Service() {
 
         val notification = NotificationCompat.Builder(this, ApplicationClass.CHANNEL_ID)
             .setContentIntent(mainIntent)
-            .setContentTitle(PlayMusicActivity.musicList[PlayMusicActivity.indexSong].name)
-            .setContentText(PlayMusicActivity.musicList[PlayMusicActivity.indexSong].artists_names)
+            .setContentTitle(PlayMusicActivity.currentSongName)
+            .setContentText(PlayMusicActivity.currentSongArtist)
             .setSmallIcon(R.drawable.musical_note)
             .setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.musical_note))
             .setStyle(
