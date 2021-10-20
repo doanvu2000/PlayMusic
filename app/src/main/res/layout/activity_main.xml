@@ -19,7 +19,7 @@
             android:layout_height="match_parent"
             android:gravity="center"
             android:paddingHorizontal="10dp"
-            android:text="THƯ VIỆN"
+            android:text="TOP MUSIC"
             android:textColor="@color/white"
             android:textSize="18sp"
             android:textStyle="bold" />

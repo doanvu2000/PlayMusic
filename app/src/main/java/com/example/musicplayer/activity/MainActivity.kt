@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.media.MediaPlayer
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -19,11 +18,20 @@ import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
 import com.example.musicplayer.`object`.MusicAudio
 import com.example.musicplayer.adapter.MusicAdapter
+import com.example.musicplayer.adapter.SongAdapter
+import com.example.musicplayer.api.ApiChartRealtime
+import com.example.musicplayer.model.Music
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_now_playing.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
@@ -36,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         var musicList: MutableList<MusicAudio> = ArrayList()
         var searchList: MutableList<MusicAudio> = ArrayList()
+        lateinit var chartRealTimeAdapter: SongAdapter
     }
 
     val broadcastPlayPause = object : BroadcastReceiver() {
@@ -79,13 +88,24 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         supportActionBar?.hide()
         musicAdapter = MusicAdapter(listSong)
-        if (checkPermission()) {
-            loadSong()
-        }
+//        if (checkPermission()) {
+//            loadLocalSongFromDevice()
+//        }
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastPlayPause, IntentFilter("play_pause"))
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter("ChangedSong"))
+
+        //load api chart-realtime
+        getFromAPI()
+        chartRealTimeAdapter = SongAdapter(ApplicationClass.listChartRealtime, this)
+
+        rcvListSong.adapter = chartRealTimeAdapter
+        rcvListSong.layoutManager = LinearLayoutManager(this)
+        rcvListSong.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+        //local song
+
+        /*
         rcvListSong.layoutManager = LinearLayoutManager(this)
         rcvListSong.adapter = musicAdapter
         rcvListSong.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
@@ -114,9 +134,29 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
         })
+        */
+
+
     }
 
-    private fun loadSong() {
+    private fun getFromAPI() {
+        val builder = Retrofit.Builder().addConverterFactory(GsonConverterFactory.create())
+            .baseUrl(ApplicationClass.BASE_API)
+            .build().create(ApiChartRealtime::class.java)
+        val get = builder.getSong()
+        get.enqueue(object : Callback<Music> {
+            override fun onResponse(call: Call<Music>, response: Response<Music>) {
+                ApplicationClass.listChartRealtime.addAll(response.body()!!.data.song)
+                chartRealTimeAdapter.notifyDataSetChanged()
+            }
+
+            override fun onFailure(call: Call<Music>, t: Throwable) {
+                Log.d(TAG, "onFailure: ${t.message}")
+            }
+        })
+    }
+
+    private fun loadLocalSongFromDevice() {
         val uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val cursor =
             contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC + "!=0", null, null)
@@ -161,7 +201,7 @@ class MainActivity : AppCompatActivity() {
                     if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
                         Toast.makeText(this, "Please allow storage permission", Toast.LENGTH_SHORT)
                             .show()
-                    } else loadSong()
+                    } else loadLocalSongFromDevice()
                 }
             }
         }

@@ -4,14 +4,28 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import android.util.Log
+import com.example.musicplayer.api.ApiChartRealtime
+import com.example.musicplayer.model.Music
+import com.example.musicplayer.model.Song
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import kotlin.math.log
 
 class ApplicationClass : Application() {
+    private val TAG = "Activity-ApplicationClass"
+
     companion object {
         const val CHANNEL_ID = "channel1"
         const val PLAY = "play"
         const val NEXT = "next"
         const val PREVIOUS = "previous"
         const val EXIT = "exit"
+        var listChartRealtime: MutableList<Song> = ArrayList()
+        const val BASE_API = "https://mp3.zing.vn/"
     }
 
     override fun onCreate() {
@@ -26,6 +40,23 @@ class ApplicationClass : Application() {
             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(notificationChannel)
         }
-
+        getFromAPI()
     }
+
+    private fun getFromAPI() {
+        val builder = Retrofit.Builder().addConverterFactory(GsonConverterFactory.create())
+            .baseUrl(BASE_API)
+            .build().create(ApiChartRealtime::class.java)
+        val get = builder.getSong()
+        get.enqueue(object : Callback<Music> {
+            override fun onResponse(call: Call<Music>, response: Response<Music>) {
+                listChartRealtime.addAll(response.body()!!.data.song)
+            }
+
+            override fun onFailure(call: Call<Music>, t: Throwable) {
+                Log.d(TAG, "onFailure: ${t.message}")
+            }
+        })
+    }
+
 }
