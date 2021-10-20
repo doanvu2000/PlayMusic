@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
 import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
 import com.example.musicplayer.`object`.MusicAudio
@@ -76,7 +77,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             PlayMusicActivity.indexSong = index
-            songNameNP.text = PlayMusicActivity.musicList[index].name
+            val songIndex = PlayMusicActivity.musicList[index]
+            songNameNP.text = "${index + 1}." + songIndex.name
+            Glide.with(baseContext).load(songIndex.thumbnail).into(imageNP)
             PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
             PlayMusicActivity.musicService!!.createMedia()
             PlayMusicActivity.musicService!!.mediaPlayer!!.start()
@@ -103,6 +106,14 @@ class MainActivity : AppCompatActivity() {
         rcvListSong.adapter = chartRealTimeAdapter
         rcvListSong.layoutManager = LinearLayoutManager(this)
         rcvListSong.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+
+        chartRealTimeAdapter.setOnSongClick {
+            val intent = Intent(this, PlayMusicActivity::class.java)
+            //intent.putExtra("songFromHome", ApplicationClass.listChartRealtime[it])
+            intent.putExtra("indexSong", it)
+            startActivity(intent)
+        }
+
         //local song
 
         /*
@@ -146,6 +157,7 @@ class MainActivity : AppCompatActivity() {
         val get = builder.getSong()
         get.enqueue(object : Callback<Music> {
             override fun onResponse(call: Call<Music>, response: Response<Music>) {
+                ApplicationClass.listChartRealtime.clear()
                 ApplicationClass.listChartRealtime.addAll(response.body()!!.data.song)
                 chartRealTimeAdapter.notifyDataSetChanged()
             }
@@ -217,9 +229,5 @@ class MainActivity : AppCompatActivity() {
         }
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastPlayPause)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
-    }
-
-    private fun indexOnSearchList(song: MusicAudio): Int {
-        return listSong.indexOf(song)
     }
 }

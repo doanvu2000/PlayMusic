@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import com.bumptech.glide.Glide
 import com.example.musicplayer.R
 import com.example.musicplayer.activity.PlayMusicActivity
 import kotlinx.android.synthetic.main.fragment_now_playing.*
@@ -15,11 +16,6 @@ import kotlinx.android.synthetic.main.fragment_now_playing.view.*
 import kotlin.random.Random
 
 class NowPlaying : Fragment() {
-
-
-    companion object {
-
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -51,7 +47,8 @@ class NowPlaying : Fragment() {
             view?.visibility = View.VISIBLE
             view?.songNameNP?.isSelected = true
             val song = PlayMusicActivity.musicList[PlayMusicActivity.indexSong]
-            songNameNP.text = song.name
+            songNameNP.text = "${song.position}.${song.name}"
+            Glide.with(this).load(song.thumbnail).into(imageNP)
             if (PlayMusicActivity.isPlaying)
                 btnPlayPauseNP.setImageResource(R.drawable.ic_pause)
             else btnPlayPauseNP.setImageResource(R.drawable.ic_play)
@@ -84,7 +81,9 @@ class NowPlaying : Fragment() {
         }
         PlayMusicActivity.indexSong = index
         PlayMusicActivity.musicService!!.createMedia()
-        songNameNP.text = PlayMusicActivity.musicList[index].name
+        val songIndex = PlayMusicActivity.musicList[index]
+        songNameNP.text = "${songIndex.position}. " + songIndex.name
+        Glide.with(this).load(songIndex.thumbnail).into(imageNP)
         PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
         playSong()
     }
@@ -101,7 +100,9 @@ class NowPlaying : Fragment() {
         }
         PlayMusicActivity.indexSong = index
         PlayMusicActivity.musicService!!.createMedia()
-        songNameNP.text = PlayMusicActivity.musicList[index].name
+        val songIndex = PlayMusicActivity.musicList[index]
+        songNameNP.text = "${songIndex.position}. " + songIndex.name
+        Glide.with(this).load(songIndex.thumbnail).into(imageNP)
         PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
         playSong()
     }

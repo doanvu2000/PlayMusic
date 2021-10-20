@@ -2,6 +2,7 @@ package com.example.musicplayer.activity
 
 import android.content.*
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
@@ -11,8 +12,11 @@ import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.bumptech.glide.Glide
+import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
 import com.example.musicplayer.`object`.MusicAudio
+import com.example.musicplayer.model.Song
 import com.example.musicplayer.receiver.NotificationReceiver
 import com.example.musicplayer.service.MusicService
 import kotlinx.android.synthetic.main.activity_play_music.*
@@ -75,15 +79,17 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             if (flag == "play") playAudio() else pauseAudio()
         }
     }
-    var song: MusicAudio? = null
+
 
     companion object {
-        lateinit var musicList: MutableList<MusicAudio>
+        lateinit var musicList: MutableList<Song>
+        var listSong: MutableList<Song> = ArrayList()
         var indexSong = 0
         var isPlaying: Boolean = false
         var musicService: MusicService? = null
         var repeatOne = false
         var isShuffle = false
+        var song: Song? = null
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,6 +102,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastPlayPause, IntentFilter("play_pause"))
         val flag = intent.getStringExtra("flagMain")
+        Log.d(TAG, "onCreate flag: $flag")
         if (flag != "resumePlay") { //start service
             val intentService = Intent(this, MusicService::class.java)
             bindService(intentService, this, BIND_AUTO_CREATE)
@@ -119,11 +126,21 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         }
 
         indexSong = intent.getIntExtra("indexSong", 0)
+        Log.d(TAG, "indexSong: $indexSong")
         musicList = ArrayList()
-        musicList.addAll(MainActivity.musicList)
+        musicList.addAll(ApplicationClass.listChartRealtime)
+
+//        listSong.addAll(ApplicationClass.listChartRealtime)
+
         song = musicList[indexSong]
         if (song != null) {
             tvNameSong.text = song!!.name
+            tvArtistsPlay.text = song!!.artists_names
+            val url = song!!.thumbnail
+            val token = url.split("/")
+            val rm = token[3]
+            val shortUrl = url.substring(0,url.indexOf(rm))+url.substring(url.indexOf(rm)+rm.length+1)
+            Glide.with(this).load(shortUrl).into(imageSongPlay)
         }
 
         btnBackToHome.setOnClickListener {
@@ -141,7 +158,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 } else {
                     indexSong = musicList.size - 1
                 }
-            }else{
+            } else {
                 indexSong = Random.nextInt(0, musicList.size)
             }
             song = musicList[indexSong]
@@ -154,7 +171,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 } else {
                     indexSong = 0
                 }
-            }else{
+            } else {
                 indexSong = Random.nextInt(0, musicList.size)
             }
             song = musicList[indexSong]
@@ -173,9 +190,9 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
 
         btnShuffleSong.setOnClickListener {
             isShuffle = !isShuffle
-            if(isShuffle){
+            if (isShuffle) {
                 btnShuffleSong.setColorFilter(ContextCompat.getColor(this, R.color.purple_500))
-            }else{
+            } else {
                 btnShuffleSong.setColorFilter(ContextCompat.getColor(this, R.color.white))
             }
         }
@@ -193,6 +210,10 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         })
     }
 
+    private fun getUrlPlayOnline(id: String): Uri {
+        return Uri.parse("http://api.mp3.zing.vn/api/streaming/audio/$id/320")
+    }
+
     fun createMedia() {
         try {
             if (musicService!!.mediaPlayer == null) {
@@ -200,8 +221,14 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             }
             musicService!!.mediaPlayer!!.reset()
             tvNameSong.text = song!!.name
+            tvArtistsPlay.text = song!!.artists_names
+            val url = song!!.thumbnail
+            val token = url.split("/")
+            val rm = token[3]
+            val shortUrl = url.substring(0,url.indexOf(rm))+url.substring(url.indexOf(rm)+rm.length+1)
+            Glide.with(this).load(shortUrl).into(imageSongPlay)
             //set path
-            musicService!!.mediaPlayer!!.setDataSource(this, song!!.url)
+            musicService!!.mediaPlayer!!.setDataSource(this, getUrlPlayOnline(song!!.id))
             musicService!!.mediaPlayer!!.prepare()
             musicService!!.mediaPlayer!!.start()
             isPlaying = true
@@ -230,7 +257,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
     }
 
     private fun setAudioProgress() {
-        val totalDuration = song!!.duration
+        val totalDuration = song!!.duration * 1000
         var currentPos = musicService!!.mediaPlayer!!.currentPosition
         totalTime.text = timerConversion(totalDuration)
         currentTime.text = timerConversion(currentPos)
@@ -259,10 +286,6 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             String.format("%02d:%02d", mns, scs)
         }
         return audioTime
-    }
-
-    private fun sendToService() {
-
     }
 
 }

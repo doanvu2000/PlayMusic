@@ -7,14 +7,20 @@
     android:background="#0099FF"
     tools:context=".fragment.NowPlaying">
 
+    <ImageView
+        android:id="@+id/imageNP"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_alignParentLeft="true" />
 
     <TextView
+        android:layout_toEndOf="@id/imageNP"
         android:id="@+id/songNameNP"
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:layout_toStartOf="@id/btnPrevSongNP"
         android:ellipsize="marquee"
-        android:gravity="center"
+        android:gravity="center|left"
         android:marqueeRepeatLimit="marquee_forever"
         android:paddingStart="10dp"
         android:singleLine="true"

@@ -14,11 +14,17 @@ import kotlinx.android.synthetic.main.item_song_chart_realtime.view.*
 
 class SongAdapter(val listSong: MutableList<Song>, val context: Context) :
     RecyclerView.Adapter<SongAdapter.ViewHolder>() {
+    lateinit var onclick: (position: Int) -> Unit
+
+    fun setOnSongClick(event: (it: Int) -> Unit) {
+        onclick = event
+    }
+
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         @SuppressLint("SetTextI18n")
         fun bindData(song: Song) {
             when (adapterPosition) {
-                0-> itemView.tvRank.setTextColor(Color.parseColor("#FF6666"))
+                0 -> itemView.tvRank.setTextColor(Color.parseColor("#FF6666"))
                 1 -> itemView.tvRank.setTextColor(Color.parseColor("#33FF00"))
                 2 -> itemView.tvRank.setTextColor(Color.parseColor("#FF9900"))
                 else -> itemView.tvRank.setTextColor(Color.parseColor("#FFFFFF"))
@@ -27,6 +33,12 @@ class SongAdapter(val listSong: MutableList<Song>, val context: Context) :
             itemView.tvName.text = song.name
             itemView.tvArtists.text = song.artists_names
             Glide.with(context).load(song.thumbnail).into(itemView.image)
+        }
+
+        init {
+            itemView.setOnClickListener {
+                onclick.invoke(adapterPosition)
+            }
         }
     }
 

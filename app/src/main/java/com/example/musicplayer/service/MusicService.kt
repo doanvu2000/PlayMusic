@@ -3,14 +3,18 @@ package com.example.musicplayer.service
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Binder
 import android.os.IBinder
 import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.widget.ImageViewCompat
 import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
 import com.example.musicplayer.activity.MainActivity
@@ -18,6 +22,8 @@ import com.example.musicplayer.activity.PlayMusicActivity
 import com.example.musicplayer.receiver.NotificationReceiver
 import kotlinx.android.synthetic.main.activity_play_music.*
 import java.lang.Exception
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MusicService : Service() {
     private var myBinder = MyBinder()
@@ -73,10 +79,20 @@ class MusicService : Service() {
         intent.putExtra("indexSong", PlayMusicActivity.indexSong)
         intent.putExtra("flagMain", "resumePlay")
         val mainIntent = PendingIntent.getActivity(this, 0, intent, 0)
+//
+//        val url   = URL(PlayMusicActivity.musicList[PlayMusicActivity.indexSong].thumbnail)
+//        val connection :HttpURLConnection = url.openConnection() as HttpURLConnection
+//        connection.doInput = true
+//        connection.connect()
+//        var bitmap :Bitmap = BitmapFactory.decodeStream(connection.inputStream)
+//        if (bitmap == null){
+//            bitmap = BitmapFactory.decodeResource(resources, R.drawable.musical_note)
+//        }
+
         val notification = NotificationCompat.Builder(this, ApplicationClass.CHANNEL_ID)
             .setContentIntent(mainIntent)
             .setContentTitle(PlayMusicActivity.musicList[PlayMusicActivity.indexSong].name)
-            .setContentText(PlayMusicActivity.musicList[PlayMusicActivity.indexSong].author)
+            .setContentText(PlayMusicActivity.musicList[PlayMusicActivity.indexSong].artists_names)
             .setSmallIcon(R.drawable.musical_note)
             .setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.musical_note))
             .setStyle(
@@ -101,14 +117,13 @@ class MusicService : Service() {
             }
             PlayMusicActivity.musicService!!.mediaPlayer!!.reset()
             //set path
-            PlayMusicActivity.musicService!!.mediaPlayer!!.setDataSource(
-                this,
-                PlayMusicActivity.musicList[PlayMusicActivity.indexSong]!!.url
-            )
-            PlayMusicActivity.musicService!!.mediaPlayer!!.prepare()
-
+            val songIndex = PlayMusicActivity.musicList[PlayMusicActivity.indexSong]
+            val link = "http://api.mp3.zing.vn/api/streaming/audio/${songIndex!!.id}/320"
+            PlayMusicActivity.musicService!!.mediaPlayer!!.setDataSource(link)
+            PlayMusicActivity.musicService!!.mediaPlayer!!.prepare() //error
             PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
         } catch (ex: Exception) {
+            Log.e("Activity", "error: ${ex.message}")
             return
         }
 
