@@ -9,8 +9,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
+import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
 import com.example.musicplayer.activity.PlayMusicActivity
+import com.example.musicplayer.model.Song
 import kotlinx.android.synthetic.main.fragment_now_playing.*
 import kotlinx.android.synthetic.main.fragment_now_playing.view.*
 import kotlin.random.Random
@@ -35,6 +37,9 @@ class NowPlaying : Fragment() {
         view.setOnClickListener {
             val intent = Intent(requireContext(), PlayMusicActivity::class.java)
             intent.putExtra("indexSong", PlayMusicActivity.indexSong)
+            intent.putExtra("currentSongName", PlayMusicActivity.currentSongName)
+            intent.putExtra("currentSongArtist", PlayMusicActivity.currentSongArtist)
+            intent.putExtra("currentSongThumb", PlayMusicActivity.currentSongThumb)
             intent.putExtra("flagMain", "resumePlay")
             ContextCompat.startActivity(requireContext(), intent, null)
         }
@@ -46,9 +51,8 @@ class NowPlaying : Fragment() {
         if (PlayMusicActivity.musicService != null) {
             view?.visibility = View.VISIBLE
             view?.songNameNP?.isSelected = true
-            val song = PlayMusicActivity.musicList[PlayMusicActivity.indexSong]
-            songNameNP.text = "${song.position}.${song.name}"
-            Glide.with(this).load(song.thumbnail).into(imageNP)
+            songNameNP.text = PlayMusicActivity.currentSongName
+            Glide.with(this).load(PlayMusicActivity.currentSongThumb).into(imageNP)
             if (PlayMusicActivity.isPlaying)
                 btnPlayPauseNP.setImageResource(R.drawable.ic_pause)
             else btnPlayPauseNP.setImageResource(R.drawable.ic_play)
@@ -71,39 +75,103 @@ class NowPlaying : Fragment() {
 
     private fun nextSong() {
         var index = PlayMusicActivity.indexSong
-        if (PlayMusicActivity.isShuffle) index = Random.nextInt(0, PlayMusicActivity.musicList.size)
-        else {
-            if (index < PlayMusicActivity.musicList.size - 1) {
-                index++
-            } else {
-                index = 0
+        val type = ApplicationClass.type
+        if (PlayMusicActivity.isShuffle) {
+            if (type == "chart-realtime")
+                index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+            else if (type == "search")
+                index = Random.nextInt(0, PlayMusicActivity.songSearchList.size)
+        } else {
+            if (type == "chart-realtime") {
+                if (index < PlayMusicActivity.musicList.size - 1) {
+                    index++
+                } else {
+                    index = 0
+                }
+            } else if (type == "search") {
+                if (index < PlayMusicActivity.songSearchList.size - 1) {
+                    index++
+                } else {
+                    index = 0
+                }
             }
+
         }
         PlayMusicActivity.indexSong = index
         PlayMusicActivity.musicService!!.createMedia()
-        val songIndex = PlayMusicActivity.musicList[index]
-        songNameNP.text = "${songIndex.position}. " + songIndex.name
-        Glide.with(this).load(songIndex.thumbnail).into(imageNP)
+        //check Type
+        val songIndex =
+            if (type == "chart-realtime") {
+                PlayMusicActivity.musicList[index]
+            } else PlayMusicActivity.songSearchList[index]
+        if (songIndex is Song) {
+            songNameNP.text = songIndex.name
+            Glide.with(this).load(songIndex.thumbnail).into(imageNP)
+            PlayMusicActivity.currentSongName = songIndex.name
+            PlayMusicActivity.currentSongArtist = songIndex.artists_names
+            PlayMusicActivity.currentSongThumb = songIndex.thumbnail
+        } else if (songIndex is com.example.musicplayer.model.apisearch.Song) {
+            songNameNP.text = songIndex.name
+            Glide.with(this).load("https://photo-resize-zmp3.zadn.vn/" + songIndex.thumb)
+                .into(imageNP)
+            PlayMusicActivity.currentSongName = songIndex.name
+            PlayMusicActivity.currentSongArtist = songIndex.artist
+            PlayMusicActivity.currentSongThumb = songIndex.thumb
+        }
+
         PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
+        Log.d("Activity", "push notify in next NowPlaying ")
         playSong()
     }
 
     private fun prevSong() {
         var index = PlayMusicActivity.indexSong
-        if (PlayMusicActivity.isShuffle) index = Random.nextInt(0, PlayMusicActivity.musicList.size)
-        else {
-            if (index > 0) {
-                index--
-            } else {
-                index = PlayMusicActivity.musicList.size - 1
+        val type = ApplicationClass.type
+        if (PlayMusicActivity.isShuffle) {
+            if (type == "chart-realtime")
+                index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+            else if (type == "search")
+                index = Random.nextInt(0, PlayMusicActivity.songSearchList.size)
+        } else {
+
+            if (type == "chart-realtime") {
+                if (index > 0) {
+                    index--
+                } else {
+                    index = PlayMusicActivity.musicList.size - 1
+                }
+            } else if (type == "search") {
+                if (index > 0) {
+                    index--
+                } else {
+                    index = PlayMusicActivity.songSearchList.size - 1
+                }
             }
+
         }
         PlayMusicActivity.indexSong = index
         PlayMusicActivity.musicService!!.createMedia()
-        val songIndex = PlayMusicActivity.musicList[index]
-        songNameNP.text = "${songIndex.position}. " + songIndex.name
-        Glide.with(this).load(songIndex.thumbnail).into(imageNP)
+        //checkType
+        val songIndex =
+            if (type == "chart-realtime") {
+                PlayMusicActivity.musicList[index]
+            } else PlayMusicActivity.songSearchList[index]
+        if (songIndex is Song) {
+            songNameNP.text = songIndex.name
+            Glide.with(this).load(songIndex.thumbnail).into(imageNP)
+            PlayMusicActivity.currentSongName = songIndex.name
+            PlayMusicActivity.currentSongArtist = songIndex.artists_names
+            PlayMusicActivity.currentSongThumb = songIndex.thumbnail
+        } else if (songIndex is com.example.musicplayer.model.apisearch.Song) {
+            songNameNP.text = songIndex.name
+            Glide.with(this).load("https://photo-resize-zmp3.zadn.vn/" + songIndex.thumb)
+                .into(imageNP)
+            PlayMusicActivity.currentSongName = songIndex.name
+            PlayMusicActivity.currentSongArtist = songIndex.artist
+            PlayMusicActivity.currentSongThumb = songIndex.thumb
+        }
         PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
+        Log.d("Activity", "push notify in prev NowPlaying ")
         playSong()
     }
 }

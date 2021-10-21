@@ -9,8 +9,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.musicplayer.R
-import com.example.musicplayer.model.Song
-import com.example.musicplayer.model.apisearch.Item
+import com.example.musicplayer.model.apirecommend.Item
 import kotlinx.android.synthetic.main.item_song_chart_realtime.view.*
 
 class SongRecommendAdapter(val listSong: MutableList<Item>, val context: Context) :
@@ -50,20 +49,5 @@ class SongRecommendAdapter(val listSong: MutableList<Item>, val context: Context
 
     override fun getItemCount(): Int {
         return listSong.size
-    }
-
-    fun timerConversion(sec: Int): String {
-        var sencond = sec
-        val audioTime: String
-        val hrs = sencond / 3600
-        sencond -= hrs * 3600
-        val mns = sencond / 60 % 60
-        sencond -= mns * 60
-        audioTime = if (hrs > 0) {
-            String.format("%02d:%02d:%02d", hrs, mns, sencond)
-        } else {
-            String.format("%02d:%02d", mns, sencond)
-        }
-        return audioTime
     }
 }

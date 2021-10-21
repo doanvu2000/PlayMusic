@@ -72,8 +72,18 @@ class NotificationReceiver : BroadcastReceiver() {
         val intentChanged = Intent("ChangedSong")
         var index = PlayMusicActivity.indexSong
         if (!PlayMusicActivity.isShuffle) {
-            if (index < PlayMusicActivity.musicList.size - 1) index++ else index = 0
-        } else index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+            if (ApplicationClass.type == "chart-realtime") {
+                if (index < PlayMusicActivity.musicList.size - 1) index++ else index = 0
+            } else if (ApplicationClass.type == "search") {
+                if (index < PlayMusicActivity.songSearchList.size - 1) index++ else index = 0
+            }
+        } else {
+            if (ApplicationClass.type == "chart-realtime") {
+                index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+            } else if (ApplicationClass.type == "search") {
+                index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+            }
+        }
         intentChanged.putExtra("indexSong", index)
         intentChanged.putExtra("flag", "next")
         LocalBroadcastManager.getInstance(context).sendBroadcast(intentChanged)

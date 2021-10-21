@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View
 import android.widget.SearchView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
@@ -24,8 +25,11 @@ import com.example.musicplayer.R
 import com.example.musicplayer.`object`.MusicAudio
 import com.example.musicplayer.adapter.MusicAdapter
 import com.example.musicplayer.adapter.SongAdapter
-import com.example.musicplayer.api.ApiChartRealtime
+import com.example.musicplayer.adapter.SongSearchAdapter
+import com.example.musicplayer.api.ApiMusic
 import com.example.musicplayer.model.Music
+import com.example.musicplayer.model.apisearch.MusicSearch
+import com.example.musicplayer.model.apisearch.Song
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_now_playing.*
 import retrofit2.Call
@@ -46,6 +50,8 @@ class MainActivity : AppCompatActivity() {
         var musicList: MutableList<MusicAudio> = ArrayList()
         var searchList: MutableList<MusicAudio> = ArrayList()
         lateinit var chartRealTimeAdapter: SongAdapter
+        lateinit var songSearchAdapter: SongSearchAdapter
+        var songSearchList: MutableList<Song> = ArrayList()
     }
 
     val broadcastPlayPause = object : BroadcastReceiver() {
@@ -65,22 +71,55 @@ class MainActivity : AppCompatActivity() {
                 Random.nextInt(0, PlayMusicActivity.musicList.size)
             else {
                 if (flag == "next") {
-                    if (index < PlayMusicActivity.musicList.size - 1) {
-                        index++
-                    } else {
-                        index = 0
+                    if (ApplicationClass.type == "chart-realtime") {
+                        if (index < PlayMusicActivity.musicList.size - 1) {
+                            index++
+                        } else {
+                            index = 0
+                        }
+                    } else if (ApplicationClass.type == "search") {
+                        if (index < PlayMusicActivity.songSearchList.size - 1) {
+                            index++
+                        } else {
+                            index = 0
+                        }
                     }
+
                 } else if (flag == "previous") {
-                    if (index > 0)
-                        index--
-                    else index = PlayMusicActivity.musicList.size - 1
+                    if (ApplicationClass.type == "chart-realtime") {
+                        if (index > 0)
+                            index--
+                        else index = PlayMusicActivity.musicList.size - 1
+                    } else if (ApplicationClass.type == "search") {
+                        if (index > 0)
+                            index--
+                        else index = PlayMusicActivity.songSearchList.size - 1
+                    }
                 }
             }
             PlayMusicActivity.indexSong = index
-            val songIndex = PlayMusicActivity.musicList[index]
-            songNameNP.text = "${index + 1}." + songIndex.name
-            Glide.with(baseContext).load(songIndex.thumbnail).into(imageNP)
+            //checkType
+            val songIndex =
+                if (ApplicationClass.type == "chart-realtime") {
+                    PlayMusicActivity.musicList[index]
+                } else PlayMusicActivity.songSearchList[index]
+            if (songIndex is com.example.musicplayer.model.Song) {
+                songNameNP.text = "${index + 1}." + songIndex.name
+                Glide.with(baseContext).load(songIndex.thumbnail).into(imageNP)
+                PlayMusicActivity.currentSongName = songIndex.name
+                PlayMusicActivity.currentSongArtist = songIndex.artists_names
+                PlayMusicActivity.currentSongThumb = songIndex.thumbnail
+            } else if (songIndex is Song) {
+                songNameNP.text = "${index + 1}." + songIndex.name
+                Glide.with(baseContext).load("https://photo-resize-zmp3.zadn.vn/" + songIndex.thumb)
+                    .into(imageNP)
+                PlayMusicActivity.currentSongName = songIndex.name
+                PlayMusicActivity.currentSongArtist = songIndex.artist
+                PlayMusicActivity.currentSongThumb = songIndex.thumb
+            }
+
             PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
+            Log.d(TAG, "push notify in MainActivity")
             PlayMusicActivity.musicService!!.createMedia()
             PlayMusicActivity.musicService!!.mediaPlayer!!.start()
         }
@@ -100,6 +139,7 @@ class MainActivity : AppCompatActivity() {
             .registerReceiver(broadcastReceiver, IntentFilter("ChangedSong"))
 
         //load api chart-realtime
+        progressLoadingHome.visibility = View.VISIBLE
         getFromAPI()
         chartRealTimeAdapter = SongAdapter(ApplicationClass.listChartRealtime, this)
 
@@ -111,6 +151,8 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, PlayMusicActivity::class.java)
             //intent.putExtra("songFromHome", ApplicationClass.listChartRealtime[it])
             intent.putExtra("indexSong", it)
+            ApplicationClass.type = "chart-realtime"
+            intent.putExtra("type", "chart-realtime")
             startActivity(intent)
         }
 
@@ -127,38 +169,65 @@ class MainActivity : AppCompatActivity() {
             intent.putExtra("indexSong", listSong.indexOf(searchList[it]))
             startActivity(intent)
         }
+
+        */
+        songSearchAdapter = SongSearchAdapter(songSearchList, this)
+        songSearchAdapter.setOnSongClick {
+            val intent = Intent(this, PlayMusicActivity::class.java)
+            //intent.putExtra("songFromHome", ApplicationClass.listChartRealtime[it])
+            intent.putExtra("indexSong", it)
+            ApplicationClass.type = "search"
+            intent.putExtra("type", "search")
+            startActivity(intent)
+        }
         search_bar.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
             androidx.appcompat.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(p0: String?): Boolean {
-                search_bar.clearFocus()
+                rcvListSong.adapter = songSearchAdapter
+                getSongSearchFormAPI(p0!!)
                 return false
             }
 
             override fun onQueryTextChange(p0: String?): Boolean {
-                if (p0 != null) {
-                    searchList = musicList.filter { song ->
-                        song.name.lowercase().contains(p0!!)
-                    } as MutableList<MusicAudio>
-                    musicAdapter.listSong = searchList
-                    musicAdapter.notifyDataSetChanged()
-                }
+
                 return true
             }
         })
-        */
 
+    }
 
+    private fun getSongSearchFormAPI(query: String) {
+        progressLoadingHome.visibility = View.VISIBLE
+        ApiMusic.search.getSongSearch("artist,song,key,code", 500, query).enqueue(
+            object : Callback<MusicSearch> {
+                override fun onResponse(call: Call<MusicSearch>, response: Response<MusicSearch>) {
+                    songSearchList.clear()
+                    ApplicationClass.listSongSearch.clear()
+                    songSearchList.addAll(response.body()!!.data[0].song)
+                    ApplicationClass.listSongSearch.addAll(songSearchList)
+                    songSearchAdapter.notifyDataSetChanged()
+                    progressLoadingHome.visibility = View.GONE
+                }
+
+                override fun onFailure(call: Call<MusicSearch>, t: Throwable) {
+                    Log.e(TAG, "onFailure-error: ${t.message}")
+                    Toast.makeText(baseContext, "Tìm kiếm thất bại!", Toast.LENGTH_LONG).show()
+                    progressLoadingHome.visibility = View.GONE
+                }
+            }
+        )
     }
 
     private fun getFromAPI() {
         val builder = Retrofit.Builder().addConverterFactory(GsonConverterFactory.create())
             .baseUrl(ApplicationClass.BASE_API)
-            .build().create(ApiChartRealtime::class.java)
+            .build().create(ApiMusic::class.java)
         val get = builder.getSong()
         get.enqueue(object : Callback<Music> {
             override fun onResponse(call: Call<Music>, response: Response<Music>) {
                 ApplicationClass.listChartRealtime.clear()
                 ApplicationClass.listChartRealtime.addAll(response.body()!!.data.song)
+                progressLoadingHome.visibility = View.GONE
                 chartRealTimeAdapter.notifyDataSetChanged()
             }
 
@@ -167,6 +236,7 @@ class MainActivity : AppCompatActivity() {
             }
         })
     }
+
 
     private fun loadLocalSongFromDevice() {
         val uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI

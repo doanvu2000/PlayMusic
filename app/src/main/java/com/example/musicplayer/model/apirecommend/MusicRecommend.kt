@@ -1,4 +1,4 @@
-package com.example.musicplayer.model.apisearch
+package com.example.musicplayer.model.apirecommend
 
 data class MusicRecommend(
     val `data`: Data,

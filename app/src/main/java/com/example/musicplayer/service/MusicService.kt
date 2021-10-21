@@ -19,6 +19,7 @@ import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
 import com.example.musicplayer.activity.MainActivity
 import com.example.musicplayer.activity.PlayMusicActivity
+import com.example.musicplayer.model.Song
 import com.example.musicplayer.receiver.NotificationReceiver
 import kotlinx.android.synthetic.main.activity_play_music.*
 import java.lang.Exception
@@ -88,12 +89,14 @@ class MusicService : Service() {
 //        if (bitmap == null){
 //            bitmap = BitmapFactory.decodeResource(resources, R.drawable.musical_note)
 //        }
-
+        Log.d("Activity", "name: ${PlayMusicActivity.currentSongName} - " +
+                "artist: ${PlayMusicActivity.currentSongArtist}")
         val notification = NotificationCompat.Builder(this, ApplicationClass.CHANNEL_ID)
             .setContentIntent(mainIntent)
             .setContentTitle(PlayMusicActivity.currentSongName)
             .setContentText(PlayMusicActivity.currentSongArtist)
             .setSmallIcon(R.drawable.musical_note)
+                //get image Song?
             .setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.musical_note))
             .setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
@@ -117,8 +120,17 @@ class MusicService : Service() {
             }
             PlayMusicActivity.musicService!!.mediaPlayer!!.reset()
             //set path
-            val songIndex = PlayMusicActivity.musicList[PlayMusicActivity.indexSong]
-            val link = "http://api.mp3.zing.vn/api/streaming/audio/${songIndex!!.id}/320"
+            //checkType
+            val songIndex =
+                if (ApplicationClass.type == "chart-realtime") {
+                    PlayMusicActivity.musicList[PlayMusicActivity.indexSong]
+                } else PlayMusicActivity.songSearchList[PlayMusicActivity.indexSong]
+            var link= ""
+            if (songIndex is Song){
+                link = "http://api.mp3.zing.vn/api/streaming/audio/${songIndex!!.id}/320"
+            }else if (songIndex is com.example.musicplayer.model.apisearch.Song){
+                link = "http://api.mp3.zing.vn/api/streaming/audio/${songIndex!!.id}/320"
+            }
             PlayMusicActivity.musicService!!.mediaPlayer!!.setDataSource(link)
             PlayMusicActivity.musicService!!.mediaPlayer!!.prepare() //error
             PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)

@@ -5,7 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import android.util.Log
-import com.example.musicplayer.api.ApiChartRealtime
+import com.example.musicplayer.api.ApiMusic
 import com.example.musicplayer.model.Music
 import com.example.musicplayer.model.Song
 import retrofit2.Call
@@ -13,7 +13,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import kotlin.math.log
 
 class ApplicationClass : Application() {
     private val TAG = "Activity-ApplicationClass"
@@ -25,7 +24,9 @@ class ApplicationClass : Application() {
         const val PREVIOUS = "previous"
         const val EXIT = "exit"
         var listChartRealtime: MutableList<Song> = ArrayList()
+        var listSongSearch: MutableList<com.example.musicplayer.model.apisearch.Song> = ArrayList()
         const val BASE_API = "https://mp3.zing.vn/"
+        var type = "chart-realtime"
     }
 
     override fun onCreate() {
@@ -46,7 +47,7 @@ class ApplicationClass : Application() {
     private fun getFromAPI() {
         val builder = Retrofit.Builder().addConverterFactory(GsonConverterFactory.create())
             .baseUrl(BASE_API)
-            .build().create(ApiChartRealtime::class.java)
+            .build().create(ApiMusic::class.java)
         val get = builder.getSong()
         get.enqueue(object : Callback<Music> {
             override fun onResponse(call: Call<Music>, response: Response<Music>) {
