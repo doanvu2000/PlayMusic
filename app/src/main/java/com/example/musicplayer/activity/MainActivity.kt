@@ -43,8 +43,8 @@ import kotlin.system.exitProcess
 class MainActivity : AppCompatActivity() {
     private val TAG = "MainActivity"
     private val PERMISSION_READ = 0
-    val listSong: MutableList<MusicAudio> = ArrayList()
-    lateinit var musicAdapter: MusicAdapter
+    private val listSong: MutableList<MusicAudio> = ArrayList()
+    private lateinit var musicAdapter: MusicAdapter
 
     companion object {
         var musicList: MutableList<MusicAudio> = ArrayList()
@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
         var songSearchList: MutableList<Song> = ArrayList()
     }
 
-    val broadcastPlayPause = object : BroadcastReceiver() {
+    private val broadcastPlayPause = object : BroadcastReceiver() {
         override fun onReceive(p0: Context?, p1: Intent?) {
             val flag = p1?.getStringExtra("flag")
             if (flag == "play") btnPlayPauseNP.setImageResource(R.drawable.ic_pause) else btnPlayPauseNP.setImageResource(

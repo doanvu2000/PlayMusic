@@ -1,14 +1,15 @@
 package com.example.musicplayer.activity
 
+import android.Manifest
+import android.app.DownloadManager
 import android.content.*
+import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.net.Uri
-import android.os.Bundle
-import android.os.Handler
-import android.os.IBinder
-import android.os.Looper
+import android.os.*
 import android.util.Log
 import android.widget.SeekBar
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -153,6 +154,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         var currentSongName: String = ""
         var currentSongArtist: String = ""
         var currentSongThumb: String = ""
+        var currentID: String = ""
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -213,9 +215,11 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             currentSongName = song!!.name
             currentSongArtist = song!!.artists_names
             currentSongThumb = song!!.thumbnail
+            currentID = song!!.id
         } else if (ApplicationClass.type == "search") {
             songSearch = songSearchList[indexSong]
             currentSongName = songSearch!!.name
+            currentID = songSearch!!.id
             currentSongArtist = songSearch!!.artist
             currentSongThumb = "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb
         }
@@ -327,6 +331,35 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             }
         }
 
+        //storage runtime permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 100)
+            }
+        }
+        var myDownload: Long = 0
+        btnDownload.setOnClickListener {
+
+            val url = getUrlPlayOnline(currentID)
+            Log.d(TAG, "url: $url")
+            val request = DownloadManager.Request(url)
+                .setTitle(currentSongName)
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setAllowedOverMetered(true)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, currentSongName)
+            var dm = (getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager)
+            myDownload = dm.enqueue(request)
+        }
+        var brDownload = object : BroadcastReceiver() {
+            override fun onReceive(p0: Context?, p1: Intent?) {
+                var id: Long? = p1?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+                if (id == myDownload) {
+                    Toast.makeText(baseContext, "Download complete", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        registerReceiver(brDownload, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
                 if (p2) musicService!!.mediaPlayer?.seekTo(p1)
@@ -349,6 +382,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         rcvSongRecommend.layoutManager = LinearLayoutManager(this)
         recommendAdapter.setOnSongClick {
             val recommendSong = recommendList[it]
+            currentID = recommendSong.id
             createMedia(
                 recommendSong.id,
                 recommendSong.name,
@@ -390,6 +424,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         duration: Int
     ) {
         try {
+            currentID = id
             if (musicService!!.mediaPlayer == null) {
                 musicService!!.mediaPlayer = MediaPlayer()
             }
