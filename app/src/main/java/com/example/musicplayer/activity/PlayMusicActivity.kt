@@ -167,7 +167,6 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastPlayPause, IntentFilter("play_pause"))
         val flag = intent.getStringExtra("flagMain")
-        Log.d(TAG, "onCreate flag: $flag")
         indexSong = intent.getIntExtra("indexSong", 0)
 
         if (flag != "resumePlay") { //start service
@@ -183,7 +182,12 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             val rm = token[3]
             val shortUrl =
                 url.substring(0, url.indexOf(rm)) + url.substring(url.indexOf(rm) + rm.length + 1)
-            Glide.with(this).load(shortUrl).into(imageSongPlay)
+            if (ApplicationClass.type == "chart-realtime") {
+                Glide.with(this).load(shortUrl).into(imageSongPlay)
+            } else if (ApplicationClass.type == "search") {
+                Log.d(TAG, "onCreate: $currentSongThumb")
+                Glide.with(this).load(currentSongThumb).into(imageSongPlay)
+            }
 
             currentTime.text = timerConversion(musicService!!.mediaPlayer!!.currentPosition)
             totalTime.text = timerConversion(musicService!!.mediaPlayer!!.duration)
@@ -231,7 +235,13 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             val rm = token[3]
             val shortUrl =
                 url.substring(0, url.indexOf(rm)) + url.substring(url.indexOf(rm) + rm.length + 1)
-            Glide.with(this).load(shortUrl).into(imageSongPlay)
+            if (ApplicationClass.type == "chart-realtime") {
+                Log.d(TAG, "onCreate: set image $shortUrl")
+                Glide.with(this).load(shortUrl).into(imageSongPlay)
+            } else if (ApplicationClass.type == "search") {
+                Log.d(TAG, "onCreate: set image $currentSongThumb")
+                Glide.with(this).load(currentSongThumb).into(imageSongPlay)
+            }
         }
 
         btnBackToHome.setOnClickListener {
@@ -441,15 +451,17 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                     0,
                     urlImage.indexOf(rm)
                 ) + urlImage.substring(urlImage.indexOf(rm) + rm.length + 1)
-            Glide.with(this).load(shortUrl).into(imageSongPlay)
+            if (ApplicationClass.type == "chart-realtime") {
+                Glide.with(this).load(shortUrl).into(imageSongPlay)
+            } else if (ApplicationClass.type == "search") {
+                Glide.with(this).load(currentSongThumb).into(imageSongPlay)
+            }
             currentSongThumb = urlImage
             getListRecommend(id)
             //set path
             musicService!!.mediaPlayer!!.setDataSource(this, getUrlPlayOnline(id))
             musicService!!.mediaPlayer!!.prepare()
-            Log.d(TAG, "createMedia: prepare")
             musicService!!.mediaPlayer!!.start()
-            Log.d(TAG, "createMedia: start")
             isPlaying = true
             btnPlay.setImageResource(R.drawable.ic_pause)
             musicService!!.showNotification(R.drawable.ic_pause)

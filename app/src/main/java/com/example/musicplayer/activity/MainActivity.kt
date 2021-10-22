@@ -189,7 +189,9 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onQueryTextChange(p0: String?): Boolean {
-
+                if (p0.isNullOrEmpty()) {
+                    rcvListSong.adapter = chartRealTimeAdapter
+                }
                 return true
             }
         })
@@ -203,10 +205,18 @@ class MainActivity : AppCompatActivity() {
                 override fun onResponse(call: Call<MusicSearch>, response: Response<MusicSearch>) {
                     songSearchList.clear()
                     ApplicationClass.listSongSearch.clear()
-                    songSearchList.addAll(response.body()!!.data[0].song)
-                    ApplicationClass.listSongSearch.addAll(songSearchList)
+                    try {
+                        songSearchList.addAll(response.body()!!.data[0].song)
+                        ApplicationClass.listSongSearch.addAll(songSearchList)
+                        tvError.visibility = View.GONE
+                    } catch (ex: Exception) {
+                        Toast.makeText(baseContext, ex.message, Toast.LENGTH_SHORT).show()
+                        tvError.visibility = View.VISIBLE
+                        tvError.text = "Không có bài hát nào!"
+                    }
                     songSearchAdapter.notifyDataSetChanged()
                     progressLoadingHome.visibility = View.GONE
+
                 }
 
                 override fun onFailure(call: Call<MusicSearch>, t: Throwable) {
@@ -243,13 +253,21 @@ class MainActivity : AppCompatActivity() {
         val cursor =
             contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC + "!=0", null, null)
         if (cursor != null && cursor.moveToFirst()) {
-            do {
-                val title = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE))
-                val duration = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
-                val author = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST))
-                val url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
-                listSong.add(MusicAudio(title, duration, author, Uri.parse(url)))
-            } while (cursor.moveToNext())
+            try {
+                do {
+                    val title =
+                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE))
+                    val duration =
+                        cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
+                    val author =
+                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST))
+                    val url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
+                    listSong.add(MusicAudio(title, duration, author, Uri.parse(url)))
+                } while (cursor.moveToNext())
+            } catch (ex: Exception) {
+                Log.e(TAG, "loadLocalSongFromDevice: ${ex.message}")
+            }
+
         }
         cursor!!.close()
         musicAdapter.notifyDataSetChanged()
