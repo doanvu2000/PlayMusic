@@ -22,7 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
-import com.example.musicplayer.`object`.MusicAudio
+import com.example.musicplayer.`object`.MusicAudioLocal
 import com.example.musicplayer.adapter.MusicAdapter
 import com.example.musicplayer.adapter.SongAdapter
 import com.example.musicplayer.adapter.SongSearchAdapter
@@ -43,12 +43,12 @@ import kotlin.system.exitProcess
 class MainActivity : AppCompatActivity() {
     private val TAG = "MainActivity"
     private val PERMISSION_READ = 0
-    private val listSong: MutableList<MusicAudio> = ArrayList()
+    private val listSong: MutableList<MusicAudioLocal> = ArrayList()
     private lateinit var musicAdapter: MusicAdapter
 
     companion object {
-        var musicList: MutableList<MusicAudio> = ArrayList()
-        var searchList: MutableList<MusicAudio> = ArrayList()
+        var musicListLocal: MutableList<MusicAudioLocal> = ArrayList()
+        var searchList: MutableList<MusicAudioLocal> = ArrayList()
         lateinit var chartRealTimeAdapter: SongAdapter
         lateinit var songSearchAdapter: SongSearchAdapter
         var songSearchList: MutableList<Song> = ArrayList()
@@ -129,10 +129,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         supportActionBar?.hide()
-        musicAdapter = MusicAdapter(listSong)
-//        if (checkPermission()) {
-//            loadLocalSongFromDevice()
-//        }
+
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastPlayPause, IntentFilter("play_pause"))
         LocalBroadcastManager.getInstance(this)
@@ -156,21 +153,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        //local song
-
-        /*
-        rcvListSong.layoutManager = LinearLayoutManager(this)
-        rcvListSong.adapter = musicAdapter
-        rcvListSong.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
-        musicAdapter.setOnClickSongItem {
-            //intent to PlayMusicActivity
-            val intent = Intent(this, PlayMusicActivity::class.java)
-            intent.putExtra("song", listSong[it])
-            intent.putExtra("indexSong", listSong.indexOf(searchList[it]))
-            startActivity(intent)
-        }
-
-        */
         songSearchAdapter = SongSearchAdapter(songSearchList, this)
         songSearchAdapter.setOnSongClick {
             val intent = Intent(this, PlayMusicActivity::class.java)
@@ -195,6 +177,27 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
         })
+        //Library
+
+        musicAdapter = MusicAdapter(listSong)
+        btnLibrary.setOnClickListener {
+            if (checkPermission()) {
+                loadLocalSongFromDevice()
+            }
+            //local song
+            rcvListSong.adapter = musicAdapter
+        }
+        musicAdapter.setOnClickSongItem {
+            //intent to PlayMusicActivity
+            val intent = Intent(this, PlayMusicActivity::class.java)
+            ApplicationClass.type = "offline"
+            intent.putExtra("indexSong", listSong.indexOf(searchList[it]))
+            startActivity(intent)
+        }
+
+        tvTopMusic.setOnClickListener {
+            rcvListSong.adapter = chartRealTimeAdapter
+        }
 
     }
 
@@ -262,7 +265,7 @@ class MainActivity : AppCompatActivity() {
                     val author =
                         cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST))
                     val url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
-                    listSong.add(MusicAudio(title, duration, author, Uri.parse(url)))
+                    listSong.add(MusicAudioLocal(title, duration, author, Uri.parse(url)))
                 } while (cursor.moveToNext())
             } catch (ex: Exception) {
                 Log.e(TAG, "loadLocalSongFromDevice: ${ex.message}")
@@ -272,7 +275,7 @@ class MainActivity : AppCompatActivity() {
         cursor!!.close()
         musicAdapter.notifyDataSetChanged()
         searchList = listSong
-        musicList = listSong
+        musicListLocal = listSong
     }
 
     private fun checkPermission(): Boolean {
