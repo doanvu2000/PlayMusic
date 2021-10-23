@@ -1,6 +1,7 @@
 package com.example.musicplayer.activity
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -54,9 +55,9 @@ class MainActivity : AppCompatActivity() {
         var searchList: MutableList<MusicAudioLocal> = ArrayList()
         lateinit var chartRealTimeAdapter: SongAdapter
         lateinit var songSearchAdapter: SongSearchAdapter
-        lateinit var songFavouriteAdapter: SongFavouriteAdapter
         var songSearchList: MutableList<Song> = ArrayList()
         var songFavouriteList: MutableList<SongFavourite> = ArrayList()
+        lateinit var songFavouriteAdapter: SongFavouriteAdapter
     }
 
     private val broadcastPlayPause = object : BroadcastReceiver() {
@@ -103,24 +104,44 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             PlayMusicActivity.indexSong = index
-            //checkType
-            val songIndex =
-                if (ApplicationClass.type == "chart-realtime") {
-                    PlayMusicActivity.musicList[index]
-                } else PlayMusicActivity.songSearchList[index]
+            //check Type
+            val songIndex = when (ApplicationClass.type) {
+                "chart-realtime" -> PlayMusicActivity.musicList[index]
+                "search" -> PlayMusicActivity.songSearchList[index]
+                "offline" -> PlayMusicActivity.songLocalList[index]
+                else -> PlayMusicActivity.songFavouriteList[index]
+            }
             if (songIndex is com.example.musicplayer.model.Song) {
-                songNameNP.text = "${index + 1}." + songIndex.name
+                songNameNP.text = songIndex.name
                 Glide.with(baseContext).load(songIndex.thumbnail).into(imageNP)
                 PlayMusicActivity.currentSongName = songIndex.name
                 PlayMusicActivity.currentSongArtist = songIndex.artists_names
                 PlayMusicActivity.currentSongThumb = songIndex.thumbnail
-            } else if (songIndex is Song) {
-                songNameNP.text = "${index + 1}." + songIndex.name
+                PlayMusicActivity.currentID = songIndex.id
+            } else if (songIndex is com.example.musicplayer.model.apisearch.Song) {
+                songNameNP.text = songIndex.name
                 Glide.with(baseContext).load("https://photo-resize-zmp3.zadn.vn/" + songIndex.thumb)
                     .into(imageNP)
                 PlayMusicActivity.currentSongName = songIndex.name
                 PlayMusicActivity.currentSongArtist = songIndex.artist
                 PlayMusicActivity.currentSongThumb = songIndex.thumb
+                PlayMusicActivity.currentID = songIndex.id
+            } else if (songIndex is MusicAudioLocal) {
+                songNameNP.text = songIndex.name
+                imageNP.setImageResource(R.drawable.musical_note)
+                PlayMusicActivity.currentSongName = songIndex.name
+                PlayMusicActivity.currentSongArtist = songIndex.author
+                PlayMusicActivity.currentSongThumb = ""
+                PlayMusicActivity.currentID = ""
+            } else if (songIndex is SongFavourite) {
+                songNameNP.text = songIndex.name
+                if (!songIndex.isOnline)
+                    imageNP.setImageResource(R.drawable.musical_note)
+                else Glide.with(baseContext).load(songIndex.thumb).into(imageNP)
+                PlayMusicActivity.currentSongName = songIndex.name
+                PlayMusicActivity.currentSongArtist = songIndex.artist
+                PlayMusicActivity.currentSongThumb = songIndex.thumb
+                PlayMusicActivity.currentID = songIndex.id
             }
 
             PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
@@ -203,20 +224,16 @@ class MainActivity : AppCompatActivity() {
         tvTopMusic.setOnClickListener {
             rcvListSong.adapter = chartRealTimeAdapter
         }
-        songFavouriteAdapter = SongFavouriteAdapter(songFavouriteList, this)
+//        songFavouriteAdapter = SongFavouriteAdapter(songFavouriteList, this)
+
         btnFavourite.setOnClickListener {
             Toast.makeText(this, "Favourite", Toast.LENGTH_SHORT).show()
             //get Favourite Song
-            rcvListSong.adapter = songFavouriteAdapter
             getSongFavourite()
-            songFavouriteAdapter.notifyDataSetChanged()
+//            songFavouriteAdapter.notifyDataSetChanged()
+            rcvListSong.adapter = songFavouriteAdapter
         }
-        songFavouriteAdapter.setOnSongClick {
-            //click
-            ApplicationClass.type = "favourite"
-            intent.putExtra("indexSong", it)
-            startActivity(intent)
-        }
+
 
     }
 
@@ -225,7 +242,14 @@ class MainActivity : AppCompatActivity() {
         songFavouriteList = songDatabase.getAllSongFavourite()
         ApplicationClass.listSongFavourite.clear()
         ApplicationClass.listSongFavourite.addAll(songFavouriteList)
-        Log.d(TAG, "getSongFavourite: $songFavouriteList")
+        songFavouriteAdapter = SongFavouriteAdapter(songFavouriteList, this)
+        songFavouriteAdapter.setOnSongClick {
+            //click
+            ApplicationClass.type = "favourite"
+            val intent = Intent(this, PlayMusicActivity::class.java)
+            intent.putExtra("indexSong", it)
+            startActivity(intent)
+        }
     }
 
     private fun getSongSearchFormAPI(query: String) {

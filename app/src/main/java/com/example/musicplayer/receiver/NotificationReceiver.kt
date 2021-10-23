@@ -60,8 +60,20 @@ class NotificationReceiver : BroadcastReceiver() {
         val intentChanged = Intent("ChangedSong")
         var index = PlayMusicActivity.indexSong
         if (!PlayMusicActivity.isShuffle) {
-            if (index > 0) index-- else index = PlayMusicActivity.musicList.size - 1
-        } else index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+            when (ApplicationClass.type) {
+                "chart-realtime" -> if (index <=0) index =  PlayMusicActivity.musicList.size - 1 else index--
+                "search" -> if (index <=0) index =  PlayMusicActivity.songSearchList.size - 1 else index--
+                "offline" -> if (index <=0) index =  PlayMusicActivity.songLocalList.size - 1 else index--
+                "favourite" -> if (index <=0) index =  PlayMusicActivity.songFavouriteList.size - 1 else index--
+            }
+        } else {
+            when (ApplicationClass.type) {
+                "chart-realtime" -> index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+                "search" -> index = Random.nextInt(0, PlayMusicActivity.songSearchList.size)
+                "offline" -> index = Random.nextInt(0, PlayMusicActivity.songLocalList.size)
+                "favourite" -> index = Random.nextInt(0, PlayMusicActivity.songFavouriteList.size)
+            }
+        }
         intentChanged.putExtra("indexSong", index)
         intentChanged.putExtra("flag", "previous")
         LocalBroadcastManager.getInstance(context).sendBroadcast(intentChanged)
@@ -72,16 +84,22 @@ class NotificationReceiver : BroadcastReceiver() {
         val intentChanged = Intent("ChangedSong")
         var index = PlayMusicActivity.indexSong
         if (!PlayMusicActivity.isShuffle) {
-            if (ApplicationClass.type == "chart-realtime") {
-                if (index < PlayMusicActivity.musicList.size - 1) index++ else index = 0
-            } else if (ApplicationClass.type == "search") {
-                if (index < PlayMusicActivity.songSearchList.size - 1) index++ else index = 0
+            when (ApplicationClass.type) {
+                "chart-realtime" -> if (index < PlayMusicActivity.musicList.size - 1) index++ else index =
+                    0
+                "search" -> if (index < PlayMusicActivity.songSearchList.size - 1) index++ else index =
+                    0
+                "offline" -> if (index < PlayMusicActivity.songLocalList.size - 1) index++ else index =
+                    0
+                "favourite" -> if (index < PlayMusicActivity.songFavouriteList.size - 1) index++ else index =
+                    0
             }
         } else {
-            if (ApplicationClass.type == "chart-realtime") {
-                index = Random.nextInt(0, PlayMusicActivity.musicList.size)
-            } else if (ApplicationClass.type == "search") {
-                index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+            when (ApplicationClass.type) {
+                "chart-realtime" -> index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+                "search" -> index = Random.nextInt(0, PlayMusicActivity.songSearchList.size)
+                "offline" -> index = Random.nextInt(0, PlayMusicActivity.songLocalList.size)
+                "favourite" -> index = Random.nextInt(0, PlayMusicActivity.songFavouriteList.size)
             }
         }
         intentChanged.putExtra("indexSong", index)

@@ -51,8 +51,8 @@ class SongDatabase(var context: Context) : SQLiteOpenHelper(
         var artist: String
         var duration: Int
         var url: String
-        var thumb: String?
-        var isOnline: Boolean
+        var thumb: String
+        var isOnline : Boolean
         if (cusor.moveToFirst()) {
             do {
                 id = cusor.getString(cusor.getColumnIndex(ID))
@@ -61,7 +61,7 @@ class SongDatabase(var context: Context) : SQLiteOpenHelper(
                 duration = cusor.getInt(cusor.getColumnIndex(DURATION))
                 url = cusor.getString(cusor.getColumnIndex(URL))
                 thumb = cusor.getString(cusor.getColumnIndex(THUMB))
-                isOnline = cusor.getInt(cusor.getColumnIndex(URL)) > 0
+                isOnline = cusor.getInt(cusor.getColumnIndex(ISONLINE))>0
                 songFavouriteList.add(
                     SongFavourite(
                         id,

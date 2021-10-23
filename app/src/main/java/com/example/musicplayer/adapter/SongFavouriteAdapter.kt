@@ -3,6 +3,7 @@ package com.example.musicplayer.adapter
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,7 +16,7 @@ import kotlinx.android.synthetic.main.item_song_chart_realtime.view.*
 
 class SongFavouriteAdapter(val listSong: MutableList<SongFavourite>, val context: Context) :
     RecyclerView.Adapter<SongFavouriteAdapter.ViewHolder>() {
-    lateinit var onclick: (position: Int) -> Unit
+    var onclick: ((position: Int) -> Unit)? = null
 
     fun setOnSongClick(event: (it: Int) -> Unit) {
         onclick = event
@@ -29,14 +30,14 @@ class SongFavouriteAdapter(val listSong: MutableList<SongFavourite>, val context
             itemView.tvName.text = song.name
             itemView.tvArtists.text = song.artist
             if (song.isOnline)
-                Glide.with(context).load("https://photo-resize-zmp3.zadn.vn/" + song.thumb)
+                Glide.with(context).load(song.thumb)
                     .into(itemView.image)
             else itemView.image.setImageResource(R.drawable.musical_note)
         }
 
         init {
             itemView.setOnClickListener {
-                onclick.invoke(adapterPosition)
+                onclick!!.invoke(adapterPosition)
             }
         }
     }

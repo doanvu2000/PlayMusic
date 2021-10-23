@@ -8,6 +8,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.*
 import android.util.Log
+import android.view.View
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +21,7 @@ import com.example.musicplayer.R
 import com.example.musicplayer.`object`.MusicAudioLocal
 import com.example.musicplayer.adapter.SongRecommendAdapter
 import com.example.musicplayer.api.ApiMusic
+import com.example.musicplayer.database.SongDatabase
 import com.example.musicplayer.database.SongFavourite
 import com.example.musicplayer.model.Song
 import com.example.musicplayer.model.apirecommend.Item
@@ -54,6 +56,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         var songSearch: com.example.musicplayer.model.apisearch.Song? = null
         var songLocal: MusicAudioLocal? = null
         var songFavourite: SongFavourite? = null
+        var songRecommend: Item? = null
 
         lateinit var recommendAdapter: SongRecommendAdapter
         var currentSongName: String = ""
@@ -112,17 +115,32 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                                 url.indexOf(rm)
                             ) + url.substring(url.indexOf(rm) + rm.length + 1)
                         Glide.with(this).load(shortUrl).into(imageSongPlay)
+                        isFavourite = checkFavourite(song!!.id, song!!.name)
                     }
                     "search" -> {
                         Glide.with(this).load(currentSongThumb).into(imageSongPlay)
+                        isFavourite =
+                            checkFavourite(songSearch!!.id, songSearch!!.name)
                     }
                     "offline" -> {
                         imageSongPlay.setImageResource(R.drawable.musical_note)
+                        isFavourite = checkFavourite("", songLocal!!.name)
                     }
                     "favourite" -> {
                         if (songFavourite!!.isOnline) {
                             Glide.with(this).load(songFavourite!!.thumb).into(imageSongPlay)
                         }
+                        isFavourite = checkFavourite(
+                            songFavourite!!.id,
+                            songFavourite!!.name,
+                        )
+                    }
+                    "recommend" -> {
+                        Glide.with(this).load(songRecommend!!.thumbnail).into(imageSongPlay)
+                        isFavourite = checkFavourite(
+                            songRecommend!!.id,
+                            songRecommend!!.name
+                        )
                     }
                 }
             } catch (ex: Exception) {
@@ -156,6 +174,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 currentSongArtist = song!!.artists_names
                 currentSongThumb = song!!.thumbnail
                 currentID = song!!.id
+                isFavourite = checkFavourite(song!!.id, song!!.name)
             }
             "search" -> {
                 songSearchList.clear()
@@ -165,6 +184,8 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 currentID = songSearch!!.id
                 currentSongArtist = songSearch!!.artist
                 currentSongThumb = "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb
+                isFavourite =
+                    checkFavourite(songSearch!!.id, songSearch!!.name)
             }
             "offline" -> {
                 songLocalList.clear()
@@ -174,6 +195,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 currentID = ""
                 currentSongArtist = songLocal!!.author
                 currentSongThumb = ""
+                isFavourite = checkFavourite("", songLocal!!.name)
             }
             "favourite" -> {
                 songFavouriteList.clear()
@@ -183,7 +205,10 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 currentID = songFavourite!!.id
                 currentSongArtist = songFavourite!!.artist
                 currentSongThumb = songFavourite!!.thumb
+                isFavourite =
+                    checkFavourite(songFavourite!!.id, songFavourite!!.name)
             }
+
         }
         if (flag != "resumePlay") {
             tvNameSong.text = currentSongName
@@ -200,17 +225,25 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                                 url.indexOf(rm)
                             ) + url.substring(url.indexOf(rm) + rm.length + 1)
                         Glide.with(this).load(shortUrl).into(imageSongPlay)
+                        isFavourite = checkFavourite(song!!.id, song!!.name)
                     }
                     "search" -> {
                         Glide.with(this).load(currentSongThumb).into(imageSongPlay)
+                        isFavourite =
+                            checkFavourite(songSearch!!.id, songSearch!!.name)
                     }
                     "offline" -> {
                         imageSongPlay.setImageResource(R.drawable.musical_note)
+                        isFavourite = checkFavourite("", songLocal!!.name)
                     }
                     "favourite" -> {
                         if (songFavourite!!.isOnline) {
                             Glide.with(this).load(songFavourite!!.thumb).into(imageSongPlay)
                         }
+                        isFavourite = checkFavourite(
+                            songFavourite!!.id,
+                            songFavourite!!.name
+                        )
                     }
                 }
             } catch (ex: Exception) {
@@ -218,6 +251,9 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 imageSongPlay.setImageResource(R.drawable.musical_note)
             }
         }
+        if (isFavourite)
+            btnFavourite.setImageResource(R.drawable.ic_favourite)
+        else btnFavourite.setImageResource(R.drawable.ic_favorite_border)
 
         btnBackToHome.setOnClickListener {
             finish()
@@ -304,7 +340,6 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         btnDownload.setOnClickListener {
 
             val url = getUrlPlayOnline(currentID)
-            Log.d(TAG, "url: $url")
             val request = DownloadManager.Request(url)
                 .setTitle(currentSongName)
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
@@ -345,7 +380,10 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         rcvSongRecommend.adapter = recommendAdapter
         rcvSongRecommend.layoutManager = LinearLayoutManager(this)
         recommendAdapter.setOnSongClick {
+
             val recommendSong = recommendList[it]
+            songRecommend = recommendSong
+//            ApplicationClass.type = "recommend"
             currentID = recommendSong.id
             createMedia(
                 recommendSong.id,
@@ -355,22 +393,93 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 recommendSong.duration
             )
         }
-
+        val db = SongDatabase(this)
         btnFavourite.setOnClickListener {
             isFavourite = !isFavourite
-            if (isFavourite)
-                btnFavourite.setImageResource(R.drawable.bg)
-            else btnFavourite.setImageResource(R.drawable.ic_favorite_border)
-
+            var id: String = ""
+            var name: String = ""
+            var artist: String = ""
+            var duration: Int = 0
+            var url: String = ""
+            var thumb: String = ""
+            var isOnline: Boolean = false
+            when (ApplicationClass.type) {
+                "chart-realtime" -> {
+                    id = song!!.id
+                    name = song!!.name
+                    artist = song!!.artists_names
+                    duration = song!!.duration
+                    url = ""
+                    thumb = song!!.thumbnail
+                    isOnline = true
+                }
+                "search" -> {
+                    id = songSearch!!.id
+                    name = songSearch!!.name
+                    artist = songSearch!!.artist
+                    duration = songSearch!!.duration.toInt()
+                    url = ""
+                    thumb = "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb
+                    isOnline = true
+                }
+                "offline" -> {
+                    id = ""
+                    name = songLocal!!.name
+                    artist = songLocal!!.author
+                    duration = songLocal!!.duration
+                    url = songLocal!!.url
+                    thumb = ""
+                    isOnline = false
+                }
+                "favourite" -> {
+                    id = songFavourite!!.id
+                    name = songFavourite!!.name
+                    artist = songFavourite!!.artist
+                    duration = songFavourite!!.duration
+                    url = songFavourite!!.url
+                    thumb = songFavourite!!.thumb
+                    isOnline = songFavourite!!.isOnline
+                }
+                "recommend" -> {
+                    id = songRecommend!!.id
+                    name = songRecommend!!.name
+                    artist = songRecommend!!.artists_names
+                    duration = songRecommend!!.duration
+                    url = ""
+                    thumb = songRecommend!!.thumbnail
+                    isOnline = true
+                }
+            }
+            var songF = SongFavourite(id, name, artist, duration, url, thumb, isOnline)
+            if (isFavourite) {//add to Favourite
+                btnFavourite.setImageResource(R.drawable.ic_favourite)
+                val success =
+                    db.insertSong(songF)
+                if (success > 0) {
+                    Toast.makeText(this, "Favourite add success", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Favourite add failed", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                btnFavourite.setImageResource(R.drawable.ic_favorite_border)
+                val delete = db.deleteSong(songF)
+                if (delete > 0) {
+                    Toast.makeText(this, "Delete favourite success", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Delete favourite failed", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
+
     }
 
-    private fun checkFavourite(id: String, name: String, artistsNames: String): Boolean {
-        val songCheck = SongFavourite(id, name, artistsNames, 0, "", "", false)
-        for (i in 0 until songFavouriteList.size) {
-
+    private fun checkFavourite(id: String, name: String): Boolean {
+        for (item in ApplicationClass.listSongFavourite) {
+            if (item.id == id && item.name == name) {
+                return true
+            }
         }
-        return true
+        return false
     }
 
     private fun setCurrentSong() {
@@ -384,6 +493,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                     song!!.thumbnail,
                     song!!.duration
                 )
+                isFavourite = checkFavourite(song!!.id, song!!.name)
             }
             "search" -> {
                 songSearch = songSearchList[indexSong]
@@ -394,10 +504,14 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                     "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb,
                     songSearch!!.duration.toInt()
                 )
+                isFavourite =
+                    checkFavourite(songSearch!!.id, songSearch!!.name)
             }
             "offline" -> {
                 songLocal = songLocalList[indexSong]
                 createMedia("", songLocal!!.name, songLocal!!.author, "", songLocal!!.duration)
+                isFavourite = checkFavourite("", songLocal!!.name)
+                btnDownload.visibility = View.GONE
             }
             "favourite" -> {
                 songFavourite = songFavouriteList[indexSong]
@@ -408,8 +522,13 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                     songFavourite!!.thumb,
                     songFavourite!!.duration
                 )
+                isFavourite =
+                    checkFavourite(songFavourite!!.id, songFavourite!!.name)
             }
         }
+        if (isFavourite)
+            btnFavourite.setImageResource(R.drawable.ic_favourite)
+        else btnFavourite.setImageResource(R.drawable.ic_favorite_border)
     }
 
     private fun getListRecommend(id: String) {
@@ -435,7 +554,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         return Uri.parse("http://api.mp3.zing.vn/api/streaming/audio/$id/320")
     }
 
-    fun createMedia(
+    private fun createMedia(
         id: String,
         name: String,
         artistsNames: String,
@@ -471,6 +590,9 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                     }
                     "offline" -> {
                         imageSongPlay.setImageResource(R.drawable.musical_note)
+                        btnDownload.visibility = View.GONE
+                        tvRecommend.visibility = View.INVISIBLE
+                        rcvSongRecommend.visibility = View.INVISIBLE
                     }
                     "favourite" -> {
                         if (songFavourite!!.isOnline) {
@@ -500,6 +622,12 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                     else
                         musicService!!.mediaPlayer!!.setDataSource(songFavourite!!.url)
                 }
+                "recommend" -> {
+                    musicService!!.mediaPlayer!!.setDataSource(
+                        this,
+                        getUrlPlayOnline(songRecommend!!.id)
+                    )
+                }
             }
             musicService!!.mediaPlayer!!.prepare()
             musicService!!.mediaPlayer!!.start()
@@ -510,7 +638,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             setAudioProgress(duration)
             musicService!!.mediaPlayer!!.setOnCompletionListener(this)
         } catch (ex: Exception) {
-            Log.e(TAG, "createMedia-error: ${ex.message}")
+            Log.e(TAG, "createMedia-error: ${ex.message} - ${ex.printStackTrace()}")
             return
         }
 
@@ -531,10 +659,15 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
     }
 
     private fun setAudioProgress(duration: Int) {
-        val totalDuration = duration * 1000
+
+        var totalDuration = duration * 1000
+        if (ApplicationClass.type == "offline" || (ApplicationClass.type == "favourite" && !songFavourite!!.isOnline)) {
+            totalDuration /= 1000
+        }
         var currentPos = musicService!!.mediaPlayer!!.currentPosition
         totalTime.text = timerConversion(totalDuration)
         currentTime.text = timerConversion(currentPos)
+
         seekBar.max = totalDuration
         val handler = Handler(Looper.getMainLooper())
         val runnable = object : Runnable {
@@ -549,62 +682,16 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
     }
 
     fun timerConversion(value: Int): String {
-        Log.d(TAG, "timerConversion: $value")
         var audioTime: String = ""
+        val hrs = value / 3600000
+        val mns = value / 60000 % 60000
+        val scs = value % 60000 / 1000
 
-        when (ApplicationClass.type) {
-            "chart-realtime", "search" -> {
-                val hrs = value / 3600000
-                val mns = value / 60000 % 60000
-                val scs = value % 60000 / 1000
-
-                audioTime = if (hrs > 0) {
-                    String.format("%02d:%02d:%02d", hrs, mns, scs)
-                } else {
-                    String.format("%02d:%02d", mns, scs)
-                }
-            }
-            "offline" -> {
-
-                val mns: Long = (value / 1000).toLong()
-                var minutes = TimeUnit.MILLISECONDS.toMinutes(mns)
-                val seconds =
-                    TimeUnit.MILLISECONDS.toSeconds(mns) - TimeUnit.MINUTES.toSeconds(minutes)
-                val hours = minutes / 60
-                minutes -= hours * 60
-                audioTime = if (hours > 0) {
-                    String.format("%02d:%02d:%02d", hours, minutes, seconds)
-                } else {
-                    String.format("%02d:%02d", minutes, seconds)
-                }
-            }
-            "favourite" -> {
-                if (songFavourite!!.isOnline) {
-                    val hrs = value / 3600000
-                    val mns = value / 60000 % 60000
-                    val scs = value % 60000 / 1000
-
-                    audioTime = if (hrs > 0) {
-                        String.format("%02d:%02d:%02d", hrs, mns, scs)
-                    } else {
-                        String.format("%02d:%02d", mns, scs)
-                    }
-                } else {
-                    val mns: Long = (value / 1000).toLong()
-                    var minutes = TimeUnit.MILLISECONDS.toMinutes(mns)
-                    val seconds =
-                        TimeUnit.MILLISECONDS.toSeconds(mns) - TimeUnit.MINUTES.toSeconds(minutes)
-                    val hours = minutes / 60
-                    minutes -= hours * 60
-                    audioTime = if (hours > 0) {
-                        String.format("%02d:%02d:%02d", hours, minutes, seconds)
-                    } else {
-                        String.format("%02d:%02d", minutes, seconds)
-                    }
-                }
-            }
+        audioTime = if (hrs > 0) {
+            String.format("%02d:%02d:%02d", hrs, mns, scs)
+        } else {
+            String.format("%02d:%02d", mns, scs)
         }
-
         return audioTime
     }
 

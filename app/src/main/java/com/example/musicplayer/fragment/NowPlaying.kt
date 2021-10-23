@@ -11,7 +11,9 @@ import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
 import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
+import com.example.musicplayer.`object`.MusicAudioLocal
 import com.example.musicplayer.activity.PlayMusicActivity
+import com.example.musicplayer.database.SongFavourite
 import com.example.musicplayer.model.Song
 import kotlinx.android.synthetic.main.fragment_now_playing.*
 import kotlinx.android.synthetic.main.fragment_now_playing.view.*
@@ -77,39 +79,40 @@ class NowPlaying : Fragment() {
         var index = PlayMusicActivity.indexSong
         val type = ApplicationClass.type
         if (PlayMusicActivity.isShuffle) {
-            if (type == "chart-realtime")
-                index = Random.nextInt(0, PlayMusicActivity.musicList.size)
-            else if (type == "search")
-                index = Random.nextInt(0, PlayMusicActivity.songSearchList.size)
-        } else {
-            if (type == "chart-realtime") {
-                if (index < PlayMusicActivity.musicList.size - 1) {
-                    index++
-                } else {
-                    index = 0
-                }
-            } else if (type == "search") {
-                if (index < PlayMusicActivity.songSearchList.size - 1) {
-                    index++
-                } else {
-                    index = 0
-                }
+            when (type) {
+                "chart-realtime" -> index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+                "search" -> index = Random.nextInt(0, PlayMusicActivity.songSearchList.size)
+                "offline" -> index = Random.nextInt(0, PlayMusicActivity.songLocalList.size)
+                "favourite" -> index = Random.nextInt(0, PlayMusicActivity.songFavouriteList.size)
             }
-
+        } else {
+            when (type) {
+                "chart-realtime" -> if (index < PlayMusicActivity.musicList.size - 1) index++ else index =
+                    0
+                "search" -> if (index < PlayMusicActivity.songSearchList.size - 1) index++ else index =
+                    0
+                "offline" -> if (index < PlayMusicActivity.songLocalList.size - 1) index++ else index =
+                    0
+                "favourite" -> if (index < PlayMusicActivity.songFavouriteList.size - 1) index++ else index =
+                    0
+            }
         }
         PlayMusicActivity.indexSong = index
         PlayMusicActivity.musicService!!.createMedia()
         //check Type
-        val songIndex =
-            if (type == "chart-realtime") {
-                PlayMusicActivity.musicList[index]
-            } else PlayMusicActivity.songSearchList[index]
+        val songIndex = when (type) {
+            "chart-realtime" -> PlayMusicActivity.musicList[index]
+            "search" -> PlayMusicActivity.songSearchList[index]
+            "offline" -> PlayMusicActivity.songLocalList[index]
+            else -> PlayMusicActivity.songFavouriteList[index]
+        }
         if (songIndex is Song) {
             songNameNP.text = songIndex.name
             Glide.with(this).load(songIndex.thumbnail).into(imageNP)
             PlayMusicActivity.currentSongName = songIndex.name
             PlayMusicActivity.currentSongArtist = songIndex.artists_names
             PlayMusicActivity.currentSongThumb = songIndex.thumbnail
+            PlayMusicActivity.currentID = songIndex.id
         } else if (songIndex is com.example.musicplayer.model.apisearch.Song) {
             songNameNP.text = songIndex.name
             Glide.with(this).load("https://photo-resize-zmp3.zadn.vn/" + songIndex.thumb)
@@ -117,6 +120,23 @@ class NowPlaying : Fragment() {
             PlayMusicActivity.currentSongName = songIndex.name
             PlayMusicActivity.currentSongArtist = songIndex.artist
             PlayMusicActivity.currentSongThumb = songIndex.thumb
+            PlayMusicActivity.currentID = songIndex.id
+        } else if (songIndex is MusicAudioLocal) {
+            songNameNP.text = songIndex.name
+            imageNP.setImageResource(R.drawable.musical_note)
+            PlayMusicActivity.currentSongName = songIndex.name
+            PlayMusicActivity.currentSongArtist = songIndex.author
+            PlayMusicActivity.currentSongThumb = ""
+            PlayMusicActivity.currentID = ""
+        } else if (songIndex is SongFavourite) {
+            songNameNP.text = songIndex.name
+            if (!songIndex.isOnline)
+                imageNP.setImageResource(R.drawable.musical_note)
+            else Glide.with(this).load(songIndex.thumb).into(imageNP)
+            PlayMusicActivity.currentSongName = songIndex.name
+            PlayMusicActivity.currentSongArtist = songIndex.artist
+            PlayMusicActivity.currentSongThumb = songIndex.thumb
+            PlayMusicActivity.currentID = songIndex.id
         }
 
         PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
@@ -128,40 +148,36 @@ class NowPlaying : Fragment() {
         var index = PlayMusicActivity.indexSong
         val type = ApplicationClass.type
         if (PlayMusicActivity.isShuffle) {
-            if (type == "chart-realtime")
-                index = Random.nextInt(0, PlayMusicActivity.musicList.size)
-            else if (type == "search")
-                index = Random.nextInt(0, PlayMusicActivity.songSearchList.size)
-        } else {
-
-            if (type == "chart-realtime") {
-                if (index > 0) {
-                    index--
-                } else {
-                    index = PlayMusicActivity.musicList.size - 1
-                }
-            } else if (type == "search") {
-                if (index > 0) {
-                    index--
-                } else {
-                    index = PlayMusicActivity.songSearchList.size - 1
-                }
+            when (type) {
+                "chart-realtime" -> index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+                "search" -> index = Random.nextInt(0, PlayMusicActivity.songSearchList.size)
+                "offline" -> index = Random.nextInt(0, PlayMusicActivity.songLocalList.size)
+                "favourite" -> index = Random.nextInt(0, PlayMusicActivity.songFavouriteList.size)
             }
-
+        } else {
+            when (type) {
+                "chart-realtime" -> if (index <=0) index =  PlayMusicActivity.musicList.size - 1 else index--
+                "search" -> if (index <=0) index =  PlayMusicActivity.songSearchList.size - 1 else index--
+                "offline" -> if (index <=0) index =  PlayMusicActivity.songLocalList.size - 1 else index--
+                "favourite" -> if (index <=0) index =  PlayMusicActivity.songFavouriteList.size - 1 else index--
+            }
         }
         PlayMusicActivity.indexSong = index
         PlayMusicActivity.musicService!!.createMedia()
-        //checkType
-        val songIndex =
-            if (type == "chart-realtime") {
-                PlayMusicActivity.musicList[index]
-            } else PlayMusicActivity.songSearchList[index]
+        //check Type
+        val songIndex = when (type) {
+            "chart-realtime" -> PlayMusicActivity.musicList[index]
+            "search" -> PlayMusicActivity.songSearchList[index]
+            "offline" -> PlayMusicActivity.songLocalList[index]
+            else -> PlayMusicActivity.songFavouriteList[index]
+        }
         if (songIndex is Song) {
             songNameNP.text = songIndex.name
             Glide.with(this).load(songIndex.thumbnail).into(imageNP)
             PlayMusicActivity.currentSongName = songIndex.name
             PlayMusicActivity.currentSongArtist = songIndex.artists_names
             PlayMusicActivity.currentSongThumb = songIndex.thumbnail
+            PlayMusicActivity.currentID = songIndex.id
         } else if (songIndex is com.example.musicplayer.model.apisearch.Song) {
             songNameNP.text = songIndex.name
             Glide.with(this).load("https://photo-resize-zmp3.zadn.vn/" + songIndex.thumb)
@@ -169,6 +185,23 @@ class NowPlaying : Fragment() {
             PlayMusicActivity.currentSongName = songIndex.name
             PlayMusicActivity.currentSongArtist = songIndex.artist
             PlayMusicActivity.currentSongThumb = songIndex.thumb
+            PlayMusicActivity.currentID = songIndex.id
+        } else if (songIndex is MusicAudioLocal) {
+            songNameNP.text = songIndex.name
+            imageNP.setImageResource(R.drawable.musical_note)
+            PlayMusicActivity.currentSongName = songIndex.name
+            PlayMusicActivity.currentSongArtist = songIndex.author
+            PlayMusicActivity.currentSongThumb = ""
+            PlayMusicActivity.currentID = ""
+        } else if (songIndex is SongFavourite) {
+            songNameNP.text = songIndex.name
+            if (!songIndex.isOnline)
+                imageNP.setImageResource(R.drawable.musical_note)
+            else Glide.with(this).load(songIndex.thumb).into(imageNP)
+            PlayMusicActivity.currentSongName = songIndex.name
+            PlayMusicActivity.currentSongArtist = songIndex.artist
+            PlayMusicActivity.currentSongThumb = songIndex.thumb
+            PlayMusicActivity.currentID = songIndex.id
         }
         PlayMusicActivity.musicService!!.showNotification(R.drawable.ic_pause)
         Log.d("Activity", "push notify in prev NowPlaying ")
