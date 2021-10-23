@@ -23,10 +23,13 @@ import com.bumptech.glide.Glide
 import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
 import com.example.musicplayer.`object`.MusicAudioLocal
-import com.example.musicplayer.adapter.MusicAdapter
+import com.example.musicplayer.adapter.MusicLocalAdapter
 import com.example.musicplayer.adapter.SongAdapter
+import com.example.musicplayer.adapter.SongFavouriteAdapter
 import com.example.musicplayer.adapter.SongSearchAdapter
 import com.example.musicplayer.api.ApiMusic
+import com.example.musicplayer.database.SongDatabase
+import com.example.musicplayer.database.SongFavourite
 import com.example.musicplayer.model.Music
 import com.example.musicplayer.model.apisearch.MusicSearch
 import com.example.musicplayer.model.apisearch.Song
@@ -43,15 +46,17 @@ import kotlin.system.exitProcess
 class MainActivity : AppCompatActivity() {
     private val TAG = "MainActivity"
     private val PERMISSION_READ = 0
-    private val listSong: MutableList<MusicAudioLocal> = ArrayList()
-    private lateinit var musicAdapter: MusicAdapter
+    private val listSongLocal: MutableList<MusicAudioLocal> = ArrayList()
+    private lateinit var musicLocalAdapter: MusicLocalAdapter
 
     companion object {
         var musicListLocal: MutableList<MusicAudioLocal> = ArrayList()
         var searchList: MutableList<MusicAudioLocal> = ArrayList()
         lateinit var chartRealTimeAdapter: SongAdapter
         lateinit var songSearchAdapter: SongSearchAdapter
+        lateinit var songFavouriteAdapter: SongFavouriteAdapter
         var songSearchList: MutableList<Song> = ArrayList()
+        var songFavouriteList: MutableList<SongFavourite> = ArrayList()
     }
 
     private val broadcastPlayPause = object : BroadcastReceiver() {
@@ -179,26 +184,48 @@ class MainActivity : AppCompatActivity() {
         })
         //Library
 
-        musicAdapter = MusicAdapter(listSong)
+        musicLocalAdapter = MusicLocalAdapter(listSongLocal)
         btnLibrary.setOnClickListener {
             if (checkPermission()) {
                 loadLocalSongFromDevice()
             }
             //local song
-            rcvListSong.adapter = musicAdapter
+            rcvListSong.adapter = musicLocalAdapter
         }
-        musicAdapter.setOnClickSongItem {
+        musicLocalAdapter.setOnClickSongItem {
             //intent to PlayMusicActivity
             val intent = Intent(this, PlayMusicActivity::class.java)
             ApplicationClass.type = "offline"
-            intent.putExtra("indexSong", listSong.indexOf(searchList[it]))
+            intent.putExtra("indexSong", it)
             startActivity(intent)
         }
 
         tvTopMusic.setOnClickListener {
             rcvListSong.adapter = chartRealTimeAdapter
         }
+        songFavouriteAdapter = SongFavouriteAdapter(songFavouriteList, this)
+        btnFavourite.setOnClickListener {
+            Toast.makeText(this, "Favourite", Toast.LENGTH_SHORT).show()
+            //get Favourite Song
+            rcvListSong.adapter = songFavouriteAdapter
+            getSongFavourite()
+            songFavouriteAdapter.notifyDataSetChanged()
+        }
+        songFavouriteAdapter.setOnSongClick {
+            //click
+            ApplicationClass.type = "favourite"
+            intent.putExtra("indexSong", it)
+            startActivity(intent)
+        }
 
+    }
+
+    private fun getSongFavourite() {
+        val songDatabase = SongDatabase(this)
+        songFavouriteList = songDatabase.getAllSongFavourite()
+        ApplicationClass.listSongFavourite.clear()
+        ApplicationClass.listSongFavourite.addAll(songFavouriteList)
+        Log.d(TAG, "getSongFavourite: $songFavouriteList")
     }
 
     private fun getSongSearchFormAPI(query: String) {
@@ -265,17 +292,19 @@ class MainActivity : AppCompatActivity() {
                     val author =
                         cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST))
                     val url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
-                    listSong.add(MusicAudioLocal(title, duration, author, Uri.parse(url)))
+                    listSongLocal.add(MusicAudioLocal(title, duration, author, url))
                 } while (cursor.moveToNext())
+                ApplicationClass.listSongLocal.clear()
+                ApplicationClass.listSongLocal.addAll(listSongLocal)
             } catch (ex: Exception) {
                 Log.e(TAG, "loadLocalSongFromDevice: ${ex.message}")
             }
 
         }
         cursor!!.close()
-        musicAdapter.notifyDataSetChanged()
-        searchList = listSong
-        musicListLocal = listSong
+        musicLocalAdapter.notifyDataSetChanged()
+        searchList = listSongLocal
+        musicListLocal = listSongLocal
     }
 
     private fun checkPermission(): Boolean {

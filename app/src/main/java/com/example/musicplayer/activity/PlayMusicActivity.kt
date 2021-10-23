@@ -17,8 +17,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
+import com.example.musicplayer.`object`.MusicAudioLocal
 import com.example.musicplayer.adapter.SongRecommendAdapter
 import com.example.musicplayer.api.ApiMusic
+import com.example.musicplayer.database.SongFavourite
 import com.example.musicplayer.model.Song
 import com.example.musicplayer.model.apirecommend.Item
 import com.example.musicplayer.model.apirecommend.MusicRecommend
@@ -28,134 +30,55 @@ import kotlinx.android.synthetic.main.activity_play_music.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.lang.Exception
+import java.util.concurrent.TimeUnit
+import kotlin.Exception
 import kotlin.random.Random
 
 
 class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCompletionListener {
-    override fun onCompletion(p0: MediaPlayer?) {
-        if (!repeatOne) {
-            if (isShuffle) {
-                indexSong = Random.nextInt(0, musicList.size)
-            } else {
-                when (ApplicationClass.type) {
-                    "chart-realtime" -> if (indexSong < musicList.size - 1) indexSong++ else indexSong =
-                        0
-                    "search" -> if (indexSong < songSearchList.size - 1) indexSong++ else indexSong =
-                        0
-                }
-            }
-        }
-        if (ApplicationClass.type == "chart-realtime") {
-            song = musicList[indexSong]
-            createMedia(
-                song!!.id,
-                song!!.name,
-                song!!.artists_names,
-                song!!.thumbnail,
-                song!!.duration
-            )
-        } else if (ApplicationClass.type == "search") {
-            songSearch = songSearchList[indexSong]
-            createMedia(
-                songSearch!!.id,
-                songSearch!!.name,
-                songSearch!!.artist,
-                "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb,
-                songSearch!!.duration.toInt()
-            )
-        }
+
+    companion object {
+        lateinit var musicList: MutableList<Song>
+        var songSearchList: MutableList<com.example.musicplayer.model.apisearch.Song> = ArrayList()
+        var recommendList: MutableList<Item> = ArrayList()
+        var songLocalList: MutableList<MusicAudioLocal> = ArrayList()
+        var songFavouriteList: MutableList<SongFavourite> = ArrayList()
+
+        var indexSong = 0
+        var isPlaying: Boolean = false
+        var musicService: MusicService? = null
+        var repeatOne = false
+        var isShuffle = false
+        var isFavourite = false
+        var song: Song? = null
+        var songSearch: com.example.musicplayer.model.apisearch.Song? = null
+        var songLocal: MusicAudioLocal? = null
+        var songFavourite: SongFavourite? = null
+
+        lateinit var recommendAdapter: SongRecommendAdapter
+        var currentSongName: String = ""
+        var currentSongArtist: String = ""
+        var currentSongThumb: String = ""
+        var currentID: String = ""
+
+        private val TAG = "PlayMusicActivity"
+        lateinit var notificationReceiver: NotificationReceiver
     }
 
-    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-        val binder = service as MusicService.MyBinder
-        musicService = binder.currentService()
-        if (ApplicationClass.type == "chart-realtime") {
-            song = musicList[indexSong]
-            createMedia(
-                song!!.id,
-                song!!.name,
-                song!!.artists_names,
-                song!!.thumbnail,
-                song!!.duration
-            )
-        } else if (ApplicationClass.type == "search") {
-            songSearch = songSearchList[indexSong]
-            createMedia(
-                songSearch!!.id,
-                songSearch!!.name,
-                songSearch!!.artist,
-                "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb,
-                songSearch!!.duration.toInt()
-            )
-        }
-//        musicService!!.showNotification(R.drawable.ic_pause)
-    }
 
-    override fun onServiceDisconnected(name: ComponentName?) {
-        musicService = null
-    }
-
-    lateinit var notificationReceiver: NotificationReceiver
-
-
-    override fun onDestroy() {
-        super.onDestroy()
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastPlayPause)
-    }
-
-    private val TAG = "PlayMusicActivity"
-
-    var broadcastReceiver = object : BroadcastReceiver() {
+    private var broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             indexSong = intent!!.getIntExtra("indexSong", 0)
-            if (ApplicationClass.type == "chart-realtime") {
-                song = musicList[indexSong]
-                createMedia(
-                    song!!.id,
-                    song!!.name,
-                    song!!.artists_names,
-                    song!!.thumbnail,
-                    song!!.duration
-                )
-            } else if (ApplicationClass.type == "search") {
-                songSearch = songSearchList[indexSong]
-                createMedia(
-                    songSearch!!.id,
-                    songSearch!!.name,
-                    songSearch!!.artist,
-                    "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb,
-                    songSearch!!.duration.toInt()
-                )
-            }
+            setCurrentSong()
         }
     }
-    var broadcastPlayPause = object : BroadcastReceiver() {
+    private var broadcastPlayPause = object : BroadcastReceiver() {
         override fun onReceive(p0: Context?, p1: Intent?) {
             val flag = p1?.getStringExtra("flag")
             if (flag == "play") playAudio() else pauseAudio()
         }
     }
 
-
-    companion object {
-        lateinit var musicList: MutableList<Song>
-        var songSearchList: MutableList<com.example.musicplayer.model.apisearch.Song> = ArrayList()
-        var indexSong = 0
-        var isPlaying: Boolean = false
-        var musicService: MusicService? = null
-        var repeatOne = false
-        var isShuffle = false
-        var song: Song? = null
-        var songSearch: com.example.musicplayer.model.apisearch.Song? = null
-        var recommendList: MutableList<Item> = ArrayList()
-        lateinit var recommendAdapter: SongRecommendAdapter
-        var currentSongName: String = ""
-        var currentSongArtist: String = ""
-        var currentSongThumb: String = ""
-        var currentID: String = ""
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -178,15 +101,33 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             tvNameSong.text = currentSongName
             tvArtistsPlay.text = currentSongArtist
             val url = currentSongThumb
-            val token = url.split("/")
-            val rm = token[3]
-            val shortUrl =
-                url.substring(0, url.indexOf(rm)) + url.substring(url.indexOf(rm) + rm.length + 1)
-            if (ApplicationClass.type == "chart-realtime") {
-                Glide.with(this).load(shortUrl).into(imageSongPlay)
-            } else if (ApplicationClass.type == "search") {
-                Log.d(TAG, "onCreate: $currentSongThumb")
-                Glide.with(this).load(currentSongThumb).into(imageSongPlay)
+            try {
+                when (ApplicationClass.type) {
+                    "chart-realtime" -> {
+                        val token = url.split("/")
+                        val rm = token[3]
+                        val shortUrl =
+                            url.substring(
+                                0,
+                                url.indexOf(rm)
+                            ) + url.substring(url.indexOf(rm) + rm.length + 1)
+                        Glide.with(this).load(shortUrl).into(imageSongPlay)
+                    }
+                    "search" -> {
+                        Glide.with(this).load(currentSongThumb).into(imageSongPlay)
+                    }
+                    "offline" -> {
+                        imageSongPlay.setImageResource(R.drawable.musical_note)
+                    }
+                    "favourite" -> {
+                        if (songFavourite!!.isOnline) {
+                            Glide.with(this).load(songFavourite!!.thumb).into(imageSongPlay)
+                        }
+                    }
+                }
+            } catch (ex: Exception) {
+                Log.e(TAG, "onCreate: ${ex.message}")
+                imageSongPlay.setImageResource(R.drawable.musical_note)
             }
 
             currentTime.text = timerConversion(musicService!!.mediaPlayer!!.currentPosition)
@@ -206,41 +147,75 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             handler.postDelayed(runnable, 1000)
         }
         musicList = ArrayList()
-        if (ApplicationClass.type == "chart-realtime") {
-            musicList.clear()
-            musicList.addAll(ApplicationClass.listChartRealtime)
-        } else if (ApplicationClass.type == "search") {
-            songSearchList.clear()
-            songSearchList.addAll(ApplicationClass.listSongSearch)
-        }
-
-        if (ApplicationClass.type == "chart-realtime") {
-            song = musicList[indexSong]
-            currentSongName = song!!.name
-            currentSongArtist = song!!.artists_names
-            currentSongThumb = song!!.thumbnail
-            currentID = song!!.id
-        } else if (ApplicationClass.type == "search") {
-            songSearch = songSearchList[indexSong]
-            currentSongName = songSearch!!.name
-            currentID = songSearch!!.id
-            currentSongArtist = songSearch!!.artist
-            currentSongThumb = "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb
+        when (ApplicationClass.type) {
+            "chart-realtime" -> {
+                musicList.clear()
+                musicList.addAll(ApplicationClass.listChartRealtime)
+                song = musicList[indexSong]
+                currentSongName = song!!.name
+                currentSongArtist = song!!.artists_names
+                currentSongThumb = song!!.thumbnail
+                currentID = song!!.id
+            }
+            "search" -> {
+                songSearchList.clear()
+                songSearchList.addAll(ApplicationClass.listSongSearch)
+                songSearch = songSearchList[indexSong]
+                currentSongName = songSearch!!.name
+                currentID = songSearch!!.id
+                currentSongArtist = songSearch!!.artist
+                currentSongThumb = "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb
+            }
+            "offline" -> {
+                songLocalList.clear()
+                songLocalList.addAll(ApplicationClass.listSongLocal)
+                songLocal = songLocalList[indexSong]
+                currentSongName = songLocal!!.name
+                currentID = ""
+                currentSongArtist = songLocal!!.author
+                currentSongThumb = ""
+            }
+            "favourite" -> {
+                songFavouriteList.clear()
+                songFavouriteList.addAll(ApplicationClass.listSongFavourite)
+                songFavourite = songFavouriteList[indexSong]
+                currentSongName = songFavourite!!.name
+                currentID = songFavourite!!.id
+                currentSongArtist = songFavourite!!.artist
+                currentSongThumb = songFavourite!!.thumb
+            }
         }
         if (flag != "resumePlay") {
             tvNameSong.text = currentSongName
             tvArtistsPlay.text = currentSongArtist
             val url = currentSongThumb
-            val token = url.split("/")
-            val rm = token[3]
-            val shortUrl =
-                url.substring(0, url.indexOf(rm)) + url.substring(url.indexOf(rm) + rm.length + 1)
-            if (ApplicationClass.type == "chart-realtime") {
-                Log.d(TAG, "onCreate: set image $shortUrl")
-                Glide.with(this).load(shortUrl).into(imageSongPlay)
-            } else if (ApplicationClass.type == "search") {
-                Log.d(TAG, "onCreate: set image $currentSongThumb")
-                Glide.with(this).load(currentSongThumb).into(imageSongPlay)
+            try {
+                when (ApplicationClass.type) {
+                    "chart-realtime" -> {
+                        val token = url.split("/")
+                        val rm = token[3]
+                        val shortUrl =
+                            url.substring(
+                                0,
+                                url.indexOf(rm)
+                            ) + url.substring(url.indexOf(rm) + rm.length + 1)
+                        Glide.with(this).load(shortUrl).into(imageSongPlay)
+                    }
+                    "search" -> {
+                        Glide.with(this).load(currentSongThumb).into(imageSongPlay)
+                    }
+                    "offline" -> {
+                        imageSongPlay.setImageResource(R.drawable.musical_note)
+                    }
+                    "favourite" -> {
+                        if (songFavourite!!.isOnline) {
+                            Glide.with(this).load(songFavourite!!.thumb).into(imageSongPlay)
+                        }
+                    }
+                }
+            } catch (ex: Exception) {
+                Log.e(TAG, "onCreate: ${ex.message}")
+                imageSongPlay.setImageResource(R.drawable.musical_note)
             }
         }
 
@@ -254,72 +229,50 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         }
         btnPrevious.setOnClickListener {
             if (!isShuffle) {
-
-                if (indexSong > 0) {
-                    indexSong--
-                } else {
-                    if (ApplicationClass.type == "chart-realtime")
-                        indexSong = musicList.size - 1
-                    else indexSong = songSearchList.size - 1
-                }
-            } else {
-                indexSong = Random.nextInt(0, musicList.size)
-            }
-            if (ApplicationClass.type == "chart-realtime") {
-                song = musicList[indexSong]
-                createMedia(
-                    song!!.id,
-                    song!!.name,
-                    song!!.artists_names,
-                    song!!.thumbnail,
-                    song!!.duration
-                )
-            } else if (ApplicationClass.type == "search") {
-                songSearch = songSearchList[indexSong]
-                createMedia(
-                    songSearch!!.id,
-                    songSearch!!.name,
-                    songSearch!!.artist,
-                    "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb,
-                    songSearch!!.duration.toInt()
-                )
-            }
-        }
-        btnNext.setOnClickListener {
-            if (!isShuffle) {
-                if (ApplicationClass.type == "chart-realtime") {
-                    if (indexSong < musicList.size - 1) indexSong++
-                    else indexSong = 0
-                } else if (ApplicationClass.type == "search") {
-                    if (indexSong < songSearchList.size - 1) {
-                        indexSong++
-                    } else {
-                        indexSong = 0
+                when (ApplicationClass.type) {
+                    "chart-realtime" -> {
+                        if (indexSong <= 0) indexSong = musicList.size - 1 else indexSong--
+                    }
+                    "search" -> {
+                        if (indexSong <= 0) indexSong = songSearchList.size - 1 else indexSong--
+                    }
+                    "offline" -> {
+                        if (indexSong <= 0) indexSong = songLocalList.size - 1 else indexSong--
+                    }
+                    "favourite" -> {
+                        if (indexSong <= 0) indexSong = songFavouriteList.size - 1 else indexSong--
                     }
                 }
             } else {
-                indexSong = Random.nextInt(0, musicList.size)
+                when (ApplicationClass.type) {
+                    "chart-realtime" -> indexSong = Random.nextInt(0, musicList.size)
+                    "search" -> indexSong = Random.nextInt(0, songSearchList.size)
+                    "offline" -> indexSong = Random.nextInt(0, songLocalList.size)
+                    "favourite" -> indexSong = Random.nextInt(0, songFavouriteList.size)
+                }
             }
-            if (ApplicationClass.type == "chart-realtime") {
-                song = musicList[indexSong]
-                createMedia(
-                    song!!.id,
-                    song!!.name,
-                    song!!.artists_names,
-                    song!!.thumbnail,
-                    song!!.duration
-                )
-            } else if (ApplicationClass.type == "search") {
-                songSearch = songSearchList[indexSong]
-                createMedia(
-                    songSearch!!.id,
-                    songSearch!!.name,
-                    songSearch!!.artist,
-                    "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb,
-                    songSearch!!.duration.toInt()
-                )
+            setCurrentSong()
+        }
+        btnNext.setOnClickListener {
+            if (!isShuffle) {
+                when (ApplicationClass.type) {
+                    "chart-realtime" -> if (indexSong < musicList.size - 1) indexSong++ else indexSong =
+                        0
+                    "search" -> if (indexSong < songSearchList.size - 1) indexSong++ else indexSong =
+                        0
+                    "offline" -> if (indexSong < songLocalList.size) indexSong++ else indexSong = 0
+                    "favourite" -> if (indexSong < songFavouriteList.size) indexSong++ else indexSong =
+                        0
+                }
+            } else {
+                when (ApplicationClass.type) {
+                    "chart-realtime" -> indexSong = Random.nextInt(0, musicList.size)
+                    "search" -> indexSong = Random.nextInt(0, songSearchList.size)
+                    "offline" -> indexSong = Random.nextInt(0, songLocalList.size)
+                    "favourite" -> indexSong = Random.nextInt(0, songFavouriteList.size)
+                }
             }
-
+            setCurrentSong()
         }
 
         btnRepeatOne.setOnClickListener {
@@ -381,6 +334,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             override fun onStopTrackingTouch(p0: SeekBar?) {
             }
         })
+
         //call api recommend
         if (ApplicationClass.type == "chart-realtime")
             getListRecommend(song!!.id)
@@ -400,6 +354,61 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 recommendSong.thumbnail,
                 recommendSong.duration
             )
+        }
+
+        btnFavourite.setOnClickListener {
+            isFavourite = !isFavourite
+            if (isFavourite)
+                btnFavourite.setImageResource(R.drawable.bg)
+            else btnFavourite.setImageResource(R.drawable.ic_favorite_border)
+
+        }
+    }
+
+    private fun checkFavourite(id: String, name: String, artistsNames: String): Boolean {
+        val songCheck = SongFavourite(id, name, artistsNames, 0, "", "", false)
+        for (i in 0 until songFavouriteList.size) {
+
+        }
+        return true
+    }
+
+    private fun setCurrentSong() {
+        when (ApplicationClass.type) {
+            "chart-realtime" -> {
+                song = musicList[indexSong]
+                createMedia(
+                    song!!.id,
+                    song!!.name,
+                    song!!.artists_names,
+                    song!!.thumbnail,
+                    song!!.duration
+                )
+            }
+            "search" -> {
+                songSearch = songSearchList[indexSong]
+                createMedia(
+                    songSearch!!.id,
+                    songSearch!!.name,
+                    songSearch!!.artist,
+                    "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb,
+                    songSearch!!.duration.toInt()
+                )
+            }
+            "offline" -> {
+                songLocal = songLocalList[indexSong]
+                createMedia("", songLocal!!.name, songLocal!!.author, "", songLocal!!.duration)
+            }
+            "favourite" -> {
+                songFavourite = songFavouriteList[indexSong]
+                createMedia(
+                    songFavourite!!.id,
+                    songFavourite!!.name,
+                    songFavourite!!.artist,
+                    songFavourite!!.thumb,
+                    songFavourite!!.duration
+                )
+            }
         }
     }
 
@@ -444,22 +453,54 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
 
             tvArtistsPlay.text = artistsNames
             currentSongArtist = artistsNames
-            val token = urlImage.split("/")
-            val rm = token[3]
-            val shortUrl =
-                urlImage.substring(
-                    0,
-                    urlImage.indexOf(rm)
-                ) + urlImage.substring(urlImage.indexOf(rm) + rm.length + 1)
-            if (ApplicationClass.type == "chart-realtime") {
-                Glide.with(this).load(shortUrl).into(imageSongPlay)
-            } else if (ApplicationClass.type == "search") {
-                Glide.with(this).load(currentSongThumb).into(imageSongPlay)
-            }
             currentSongThumb = urlImage
+            try {
+                when (ApplicationClass.type) {
+                    "chart-realtime" -> {
+                        val token = urlImage.split("/")
+                        val rm = token[3]
+                        val shortUrl =
+                            urlImage.substring(
+                                0,
+                                urlImage.indexOf(rm)
+                            ) + urlImage.substring(urlImage.indexOf(rm) + rm.length + 1)
+                        Glide.with(this).load(shortUrl).into(imageSongPlay)
+                    }
+                    "search" -> {
+                        Glide.with(this).load(currentSongThumb).into(imageSongPlay)
+                    }
+                    "offline" -> {
+                        imageSongPlay.setImageResource(R.drawable.musical_note)
+                    }
+                    "favourite" -> {
+                        if (songFavourite!!.isOnline) {
+                            Glide.with(this).load(songFavourite!!.thumb).into(imageSongPlay)
+                        }
+                    }
+                }
+            } catch (ex: Exception) {
+                Log.e(TAG, "onCreate: ${ex.message}")
+                imageSongPlay.setImageResource(R.drawable.musical_note)
+            }
             getListRecommend(id)
             //set path
-            musicService!!.mediaPlayer!!.setDataSource(this, getUrlPlayOnline(id))
+            when (ApplicationClass.type) {
+                "chart-realtime", "search" -> {
+                    musicService!!.mediaPlayer!!.setDataSource(this, getUrlPlayOnline(id))
+                }
+                "offline" -> {
+                    musicService!!.mediaPlayer!!.setDataSource(songLocal!!.url)
+                }
+                "favourite" -> {
+                    if (songFavourite!!.isOnline)
+                        musicService!!.mediaPlayer!!.setDataSource(
+                            this,
+                            getUrlPlayOnline(songFavourite!!.id)
+                        )
+                    else
+                        musicService!!.mediaPlayer!!.setDataSource(songFavourite!!.url)
+                }
+            }
             musicService!!.mediaPlayer!!.prepare()
             musicService!!.mediaPlayer!!.start()
             isPlaying = true
@@ -508,17 +549,139 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
     }
 
     fun timerConversion(value: Int): String {
-        val audioTime: String
-        val hrs = value / 3600000
-        val mns = value / 60000 % 60000
-        val scs = value % 60000 / 1000
+        Log.d(TAG, "timerConversion: $value")
+        var audioTime: String = ""
 
-        audioTime = if (hrs > 0) {
-            String.format("%02d:%02d:%02d", hrs, mns, scs)
-        } else {
-            String.format("%02d:%02d", mns, scs)
+        when (ApplicationClass.type) {
+            "chart-realtime", "search" -> {
+                val hrs = value / 3600000
+                val mns = value / 60000 % 60000
+                val scs = value % 60000 / 1000
+
+                audioTime = if (hrs > 0) {
+                    String.format("%02d:%02d:%02d", hrs, mns, scs)
+                } else {
+                    String.format("%02d:%02d", mns, scs)
+                }
+            }
+            "offline" -> {
+
+                val mns: Long = (value / 1000).toLong()
+                var minutes = TimeUnit.MILLISECONDS.toMinutes(mns)
+                val seconds =
+                    TimeUnit.MILLISECONDS.toSeconds(mns) - TimeUnit.MINUTES.toSeconds(minutes)
+                val hours = minutes / 60
+                minutes -= hours * 60
+                audioTime = if (hours > 0) {
+                    String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                } else {
+                    String.format("%02d:%02d", minutes, seconds)
+                }
+            }
+            "favourite" -> {
+                if (songFavourite!!.isOnline) {
+                    val hrs = value / 3600000
+                    val mns = value / 60000 % 60000
+                    val scs = value % 60000 / 1000
+
+                    audioTime = if (hrs > 0) {
+                        String.format("%02d:%02d:%02d", hrs, mns, scs)
+                    } else {
+                        String.format("%02d:%02d", mns, scs)
+                    }
+                } else {
+                    val mns: Long = (value / 1000).toLong()
+                    var minutes = TimeUnit.MILLISECONDS.toMinutes(mns)
+                    val seconds =
+                        TimeUnit.MILLISECONDS.toSeconds(mns) - TimeUnit.MINUTES.toSeconds(minutes)
+                    val hours = minutes / 60
+                    minutes -= hours * 60
+                    audioTime = if (hours > 0) {
+                        String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                    } else {
+                        String.format("%02d:%02d", minutes, seconds)
+                    }
+                }
+            }
         }
+
         return audioTime
+    }
+
+    override fun onCompletion(p0: MediaPlayer?) {
+        if (!repeatOne) {
+            if (isShuffle) {//checkType
+                when (ApplicationClass.type) {
+                    "chart-realtime" -> indexSong = Random.nextInt(0, musicList.size)
+                    "search" -> indexSong = Random.nextInt(0, songSearchList.size)
+                    "offline" -> indexSong = Random.nextInt(0, songLocalList.size)
+                    "favourite" -> indexSong = Random.nextInt(0, songFavouriteList.size)
+                }
+            } else {
+                when (ApplicationClass.type) {
+                    "chart-realtime" -> if (indexSong < musicList.size - 1) indexSong++ else indexSong =
+                        0
+                    "search" -> if (indexSong < songSearchList.size - 1) indexSong++ else indexSong =
+                        0
+                    "offline" -> if (indexSong < songLocalList.size) indexSong++ else indexSong = 0
+                    "favourite" -> if (indexSong < songFavouriteList.size) indexSong++ else indexSong =
+                        0
+                }
+            }
+        }
+        setCurrentSong()
+    }
+
+    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+        val binder = service as MusicService.MyBinder
+        musicService = binder.currentService()
+        when (ApplicationClass.type) {
+            "chart-realtime" -> {
+                song = musicList[indexSong]
+                createMedia(
+                    song!!.id,
+                    song!!.name,
+                    song!!.artists_names,
+                    song!!.thumbnail,
+                    song!!.duration
+                )
+            }
+            "search" -> {
+                songSearch = songSearchList[indexSong]
+                createMedia(
+                    songSearch!!.id,
+                    songSearch!!.name,
+                    songSearch!!.artist,
+                    "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb,
+                    songSearch!!.duration.toInt()
+                )
+            }
+            "offline" -> {
+                songLocal = songLocalList[indexSong]
+                createMedia("", songLocal!!.name, songLocal!!.author, "", songLocal!!.duration)
+            }
+            "favourite" -> {
+                songFavourite = songFavouriteList[indexSong]
+                createMedia(
+                    songFavourite!!.id,
+                    songFavourite!!.name,
+                    songFavourite!!.artist,
+                    songFavourite!!.thumb,
+                    songFavourite!!.duration
+                )
+            }
+        }
+    }
+
+    override fun onServiceDisconnected(name: ComponentName?) {
+        musicService = null
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastPlayPause)
     }
 
 }

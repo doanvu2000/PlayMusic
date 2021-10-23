@@ -5,7 +5,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import android.util.Log
+import com.example.musicplayer.`object`.MusicAudioLocal
 import com.example.musicplayer.api.ApiMusic
+import com.example.musicplayer.database.SongFavourite
 import com.example.musicplayer.model.Music
 import com.example.musicplayer.model.Song
 import retrofit2.Call
@@ -25,6 +27,8 @@ class ApplicationClass : Application() {
         const val EXIT = "exit"
         var listChartRealtime: MutableList<Song> = ArrayList()
         var listSongSearch: MutableList<com.example.musicplayer.model.apisearch.Song> = ArrayList()
+        var listSongLocal : MutableList<MusicAudioLocal> = ArrayList()
+        var listSongFavourite : MutableList<SongFavourite> = ArrayList()
         const val BASE_API = "https://mp3.zing.vn/"
         var type = "chart-realtime"
     }
