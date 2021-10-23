@@ -73,33 +73,36 @@ class MainActivity : AppCompatActivity() {
         override fun onReceive(p0: Context?, p1: Intent?) {
             val flag = p1?.getStringExtra("flag")
             var index = PlayMusicActivity.indexSong
-            if (PlayMusicActivity.isShuffle) index =
-                Random.nextInt(0, PlayMusicActivity.musicList.size)
+            if (PlayMusicActivity.isShuffle)
+                when (ApplicationClass.type) {
+                    "chart-realtime" -> index = Random.nextInt(0, PlayMusicActivity.musicList.size)
+                    "search" -> index = Random.nextInt(0, PlayMusicActivity.songSearchList.size)
+                    "offline" -> index = Random.nextInt(0, PlayMusicActivity.songLocalList.size)
+                    "favourite" -> index =
+                        Random.nextInt(0, PlayMusicActivity.songFavouriteList.size)
+                }
             else {
                 if (flag == "next") {
-                    if (ApplicationClass.type == "chart-realtime") {
-                        if (index < PlayMusicActivity.musicList.size - 1) {
-                            index++
-                        } else {
-                            index = 0
-                        }
-                    } else if (ApplicationClass.type == "search") {
-                        if (index < PlayMusicActivity.songSearchList.size - 1) {
-                            index++
-                        } else {
-                            index = 0
-                        }
+                    when (ApplicationClass.type) {
+                        "chart-realtime" -> if (index < PlayMusicActivity.musicList.size - 1) index++ else index =
+                            0
+                        "search" -> if (index < PlayMusicActivity.songSearchList.size - 1) index++ else index =
+                            0
+                        "offline" -> if (index < PlayMusicActivity.songLocalList.size - 1) index++ else index =
+                            0
+                        "favourite" -> if (index < PlayMusicActivity.songFavouriteList.size - 1) index++ else index =
+                            0
                     }
-
                 } else if (flag == "previous") {
-                    if (ApplicationClass.type == "chart-realtime") {
-                        if (index > 0)
-                            index--
-                        else index = PlayMusicActivity.musicList.size - 1
-                    } else if (ApplicationClass.type == "search") {
-                        if (index > 0)
-                            index--
-                        else index = PlayMusicActivity.songSearchList.size - 1
+                    when (ApplicationClass.type) {
+                        "chart-realtime" -> if (index <= 0) index =
+                            PlayMusicActivity.musicList.size - 1 else index--
+                        "search" -> if (index <= 0) index =
+                            PlayMusicActivity.songSearchList.size - 1 else index--
+                        "offline" -> if (index <= 0) index =
+                            PlayMusicActivity.songLocalList.size - 1 else index--
+                        "favourite" -> if (index <= 0) index =
+                            PlayMusicActivity.songFavouriteList.size - 1 else index--
                     }
                 }
             }
@@ -227,10 +230,8 @@ class MainActivity : AppCompatActivity() {
 //        songFavouriteAdapter = SongFavouriteAdapter(songFavouriteList, this)
 
         btnFavourite.setOnClickListener {
-            Toast.makeText(this, "Favourite", Toast.LENGTH_SHORT).show()
             //get Favourite Song
             getSongFavourite()
-//            songFavouriteAdapter.notifyDataSetChanged()
             rcvListSong.adapter = songFavouriteAdapter
         }
 

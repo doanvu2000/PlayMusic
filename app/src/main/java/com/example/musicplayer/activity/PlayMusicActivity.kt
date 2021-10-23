@@ -296,8 +296,9 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                         0
                     "search" -> if (indexSong < songSearchList.size - 1) indexSong++ else indexSong =
                         0
-                    "offline" -> if (indexSong < songLocalList.size) indexSong++ else indexSong = 0
-                    "favourite" -> if (indexSong < songFavouriteList.size) indexSong++ else indexSong =
+                    "offline" -> if (indexSong < songLocalList.size - 1) indexSong++ else indexSong =
+                        0
+                    "favourite" -> if (indexSong < songFavouriteList.size - 1) indexSong++ else indexSong =
                         0
                 }
             } else {
@@ -375,6 +376,10 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             getListRecommend(song!!.id)
         else if (ApplicationClass.type == "search") {
             getListRecommend(songSearch!!.id)
+        } else if (ApplicationClass.type == "favourite") {
+            if (songFavourite!!.isOnline) {
+                getListRecommend(songFavourite!!.id)
+            }
         }
         recommendAdapter = SongRecommendAdapter(recommendList, this)
         rcvSongRecommend.adapter = recommendAdapter
@@ -597,6 +602,11 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                     "favourite" -> {
                         if (songFavourite!!.isOnline) {
                             Glide.with(this).load(songFavourite!!.thumb).into(imageSongPlay)
+                        } else {
+                            imageSongPlay.setImageResource(R.drawable.musical_note)
+                            btnDownload.visibility = View.GONE
+                            tvRecommend.visibility = View.INVISIBLE
+                            rcvSongRecommend.visibility = View.INVISIBLE
                         }
                     }
                 }
