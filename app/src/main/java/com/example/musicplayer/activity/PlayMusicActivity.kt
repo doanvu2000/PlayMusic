@@ -138,6 +138,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                             songFavourite!!.id,
                             songFavourite!!.name,
                         )
+                        Log.d(TAG, "resume favourite: $isFavourite")
                     }
                     "recommend" -> {
                         Glide.with(this).load(songRecommend!!.thumbnail).into(imageSongPlay)
@@ -147,6 +148,9 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                         )
                     }
                 }
+                if (isFavourite)
+                    btnFavourite.setImageResource(R.drawable.ic_favourite)
+                else btnFavourite.setImageResource(R.drawable.ic_favorite_border)
             } catch (ex: Exception) {
                 Log.e(TAG, "onCreate: ${ex.message}")
                 imageSongPlay.setImageResource(R.drawable.musical_note)
@@ -464,6 +468,8 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 btnFavourite.setImageResource(R.drawable.ic_favourite)
                 val success =
                     db.insertSong(songF)
+                ApplicationClass.listSongFavourite.clear()
+                ApplicationClass.listSongFavourite.addAll(db.getAllSongFavourite())
                 if (success > 0) {
                     Toast.makeText(this, "Favourite add success", Toast.LENGTH_SHORT).show()
                 } else {
@@ -472,6 +478,9 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             } else {
                 btnFavourite.setImageResource(R.drawable.ic_favorite_border)
                 val delete = db.deleteSong(songF)
+                ApplicationClass.listSongFavourite.clear()
+                ApplicationClass.listSongFavourite.addAll(db.getAllSongFavourite())
+                if (indexSong == ApplicationClass.listSongFavourite.size) indexSong = 0
                 if (delete > 0) {
                     Toast.makeText(this, "Delete favourite success", Toast.LENGTH_SHORT).show()
                 } else {
