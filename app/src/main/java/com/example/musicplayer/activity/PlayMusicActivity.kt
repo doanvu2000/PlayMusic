@@ -129,6 +129,10 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                     "favourite" -> {
                         if (songFavourite!!.isOnline) {
                             Glide.with(this).load(songFavourite!!.thumb).into(imageSongPlay)
+                        } else {
+                            btnDownload.visibility = View.INVISIBLE
+                            tvRecommend.visibility = View.INVISIBLE
+                            rcvSongRecommend.visibility = View.INVISIBLE
                         }
                         isFavourite = checkFavourite(
                             songFavourite!!.id,
