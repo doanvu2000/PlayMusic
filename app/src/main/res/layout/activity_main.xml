@@ -9,6 +9,7 @@
     tools:ignore="MissingConstraints">
 
     <LinearLayout
+        android:layout_marginHorizontal="20dp"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:orientation="horizontal"
@@ -25,7 +26,7 @@
             android:paddingHorizontal="10dp"
             android:text="TOP MUSIC"
             android:textColor="@color/white"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
 
@@ -38,7 +39,7 @@
             android:background="@color/teal_700"
             android:text="Thư viện"
             android:textColor="@color/white"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
         <androidx.appcompat.widget.AppCompatButton
@@ -50,7 +51,7 @@
             android:background="@color/teal_200"
             android:text="YÊU THÍCH ❤"
             android:textColor="@color/white"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
         <!--        <ImageView-->

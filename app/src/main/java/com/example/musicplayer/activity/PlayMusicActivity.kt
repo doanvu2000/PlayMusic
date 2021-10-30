@@ -395,7 +395,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         btnFavourite.setOnClickListener {
 //            val model = ViewModelProvider(this)[MusicFavouriteViewModel::class.java]
 //            model.getSongFavourite(this)
-            Log.d(TAG, "onCreate: ${model.mSongFavouriteLiveData}")
+//            Log.d(TAG, "onCreate: ${model.mSongFavouriteLiveData}")
             isFavourite = !isFavourite
             var id: String = ""
             var name: String = ""

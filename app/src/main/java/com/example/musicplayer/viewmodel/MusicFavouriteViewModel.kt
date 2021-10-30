@@ -17,14 +17,11 @@ class MusicFavouriteViewModel : ViewModel() {
 
     fun deleteSongFavourite(songFavourite: SongFavourite) {
         var index = -1
-        Log.d("Activity", "deleteSongFavourite: ${listFavourite[listFavourite.size-1]}")
         for (i in 0 until listFavourite.size) {
             if (listFavourite[i].id == songFavourite.id && listFavourite[i].name == songFavourite.name && listFavourite[i].artist == songFavourite.artist) {
                 index = i
-                Log.d("Activity", "deleteSongFavourite: abcccc")
             }
         }
-        Log.e("Activity", "deleteSongFavourite: $index")
         try {
             listFavourite.removeAt(index)
         }catch (ex:Exception){
