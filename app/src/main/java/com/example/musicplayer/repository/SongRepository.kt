@@ -4,18 +4,15 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.provider.MediaStore
 import android.util.Log
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.MutableLiveData
 import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.`object`.MusicAudioLocal
 import com.example.musicplayer.activity.MainActivity
-import com.example.musicplayer.activity.PlayMusicActivity
 import com.example.musicplayer.api.ApiMusic
+import com.example.musicplayer.database.SongDatabase
+import com.example.musicplayer.database.SongFavourite
 import com.example.musicplayer.model.Music
-import com.example.musicplayer.model.Song
 import com.example.musicplayer.model.apirecommend.MusicRecommend
 import com.example.musicplayer.model.apisearch.MusicSearch
-import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -125,5 +122,12 @@ class SongRepository {
         }
         cursor!!.close()
         return listSongLocal
+    }
+    fun getSongFavourite(context: Context):MutableList<SongFavourite>{
+        val songDatabase = SongDatabase(context)
+        var songFavourite : MutableList<SongFavourite> = songDatabase.getAllSongFavourite()
+        ApplicationClass.listSongFavourite.clear()
+        ApplicationClass.listSongFavourite.addAll(songFavourite)
+        return songFavourite
     }
 }

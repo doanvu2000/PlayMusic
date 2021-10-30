@@ -1,10 +1,12 @@
 package com.example.musicplayer.database
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import androidx.lifecycle.ViewModelProvider
 
 class SongDatabase(var context: Context) : SQLiteOpenHelper(
     context, DATABASE_NAME, null,
@@ -35,6 +37,7 @@ class SongDatabase(var context: Context) : SQLiteOpenHelper(
         onCreate(db)
     }
 
+    @SuppressLint("Range")
     fun getAllSongFavourite(): MutableList<SongFavourite> {
         val songFavouriteList: MutableList<SongFavourite> = ArrayList()
         val query = "select * from $TBL_SONG"

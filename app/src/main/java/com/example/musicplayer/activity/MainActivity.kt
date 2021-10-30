@@ -36,6 +36,7 @@ import com.example.musicplayer.model.Music
 import com.example.musicplayer.model.apisearch.MusicSearch
 import com.example.musicplayer.model.apisearch.Song
 import com.example.musicplayer.repository.SongRepository
+import com.example.musicplayer.viewmodel.MusicFavouriteViewModel
 import com.example.musicplayer.viewmodel.MusicLocalViewModel
 import com.example.musicplayer.viewmodel.MusicSearchViewModel
 import com.example.musicplayer.viewmodel.MusicTopViewModel
@@ -208,7 +209,6 @@ class MainActivity : AppCompatActivity() {
         btnFavourite.setOnClickListener {
             //get Favourite Song
             getSongFavourite()
-            rcvListSong.adapter = songFavouriteAdapter
         }
 
 
@@ -238,22 +238,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getSongFavourite() {
-        val songDatabase = SongDatabase(this)
-        try {
-            songFavouriteList = songDatabase.getAllSongFavourite()
-            ApplicationClass.listSongFavourite.clear()
-            ApplicationClass.listSongFavourite.addAll(songFavouriteList)
-        } catch (e: Exception) {
+        val songFavouriteViewModel = ViewModelProvider(this)[MusicFavouriteViewModel::class.java]
+        songFavouriteViewModel.getSongFavourite(this)
+        songFavouriteViewModel.mSongFavouriteLiveData.observe(this,{
+            songFavouriteList = it
+            songFavouriteAdapter = SongFavouriteAdapter(songFavouriteList, this)
+            songFavouriteAdapter.setOnSongClick {
+                //click
+                ApplicationClass.type = "favourite"
+                val intent = Intent(this, PlayMusicActivity::class.java)
+                intent.putExtra("indexSong", it)
+                startActivity(intent)
+            }
+            rcvListSong.adapter = songFavouriteAdapter
+        })
 
-        }
-        songFavouriteAdapter = SongFavouriteAdapter(songFavouriteList, this)
-        songFavouriteAdapter.setOnSongClick {
-            //click
-            ApplicationClass.type = "favourite"
-            val intent = Intent(this, PlayMusicActivity::class.java)
-            intent.putExtra("indexSong", it)
-            startActivity(intent)
-        }
     }
 
     private fun getSongSearchFormAPI(query: String) {
@@ -289,7 +288,7 @@ class MainActivity : AppCompatActivity() {
         listSongLocal.clear()
         val localViewModel = ViewModelProvider(this)[MusicLocalViewModel::class.java]
         localViewModel.getMusicLocal()
-        localViewModel.mMusicLocalLiveData.observe(this,{
+        localViewModel.mMusicLocalLiveData.observe(this, {
             listSongLocal = it
             musicLocalAdapter = MusicLocalAdapter(listSongLocal)
             musicLocalAdapter.setOnClickSongItem {

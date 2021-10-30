@@ -27,6 +27,7 @@ import com.example.musicplayer.model.Song
 import com.example.musicplayer.model.apirecommend.Item
 import com.example.musicplayer.receiver.NotificationReceiver
 import com.example.musicplayer.service.MusicService
+import com.example.musicplayer.viewmodel.MusicFavouriteViewModel
 import com.example.musicplayer.viewmodel.MusicRecommendViewModel
 import kotlinx.android.synthetic.main.activity_play_music.*
 import kotlin.Exception
@@ -392,6 +393,9 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
 
         val db = SongDatabase(this)
         btnFavourite.setOnClickListener {
+//            val model = ViewModelProvider(this)[MusicFavouriteViewModel::class.java]
+//            model.getSongFavourite(this)
+            Log.d(TAG, "onCreate: ${model.mSongFavouriteLiveData}")
             isFavourite = !isFavourite
             var id: String = ""
             var name: String = ""
@@ -459,7 +463,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 } else {
                     Toast.makeText(this, "Favourite add failed", Toast.LENGTH_SHORT).show()
                 }
-            } else {
+            } else {//delete from favourite
                 btnFavourite.setImageResource(R.drawable.ic_favorite_border)
                 val delete = db.deleteSong(songF)
                 ApplicationClass.listSongFavourite.clear()
@@ -470,6 +474,9 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 } else {
                     Toast.makeText(this, "Delete favourite failed", Toast.LENGTH_SHORT).show()
                 }
+//                model.mSongFavouriteLiveData.observe(this,{
+//                    model.deleteSongFavourite(songF)
+//                })
             }
         }
 
