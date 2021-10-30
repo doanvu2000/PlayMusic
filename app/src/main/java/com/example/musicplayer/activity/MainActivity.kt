@@ -17,6 +17,7 @@ import android.widget.SearchView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -34,6 +35,9 @@ import com.example.musicplayer.database.SongFavourite
 import com.example.musicplayer.model.Music
 import com.example.musicplayer.model.apisearch.MusicSearch
 import com.example.musicplayer.model.apisearch.Song
+import com.example.musicplayer.repository.SongRepository
+import com.example.musicplayer.viewmodel.MusicSearchViewModel
+import com.example.musicplayer.viewmodel.MusicTopViewModel
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_now_playing.*
 import retrofit2.Call
@@ -49,6 +53,7 @@ class MainActivity : AppCompatActivity() {
     private val PERMISSION_READ = 0
     private val listSongLocal: MutableList<MusicAudioLocal> = ArrayList()
     private lateinit var musicLocalAdapter: MusicLocalAdapter
+    private lateinit var musicTopViewModel: MusicTopViewModel
 
     companion object {
         var musicListLocal: MutableList<MusicAudioLocal> = ArrayList()
@@ -164,48 +169,30 @@ class MainActivity : AppCompatActivity() {
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter("ChangedSong"))
 
-        //load api chart-realtime
-        progressLoadingHome.visibility = View.VISIBLE
-        getFromAPI()
-        chartRealTimeAdapter = SongAdapter(ApplicationClass.listChartRealtime, this)
-
-        rcvListSong.adapter = chartRealTimeAdapter
         rcvListSong.layoutManager = LinearLayoutManager(this)
         rcvListSong.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
 
-        chartRealTimeAdapter.setOnSongClick {
-            val intent = Intent(this, PlayMusicActivity::class.java)
-            //intent.putExtra("songFromHome", ApplicationClass.listChartRealtime[it])
-            intent.putExtra("indexSong", it)
-            ApplicationClass.type = "chart-realtime"
-            intent.putExtra("type", "chart-realtime")
-            startActivity(intent)
-        }
+        //load api chart-realtime
+        progressLoadingHome.visibility = View.VISIBLE
+        getTopSong()
 
-        songSearchAdapter = SongSearchAdapter(songSearchList, this)
-        songSearchAdapter.setOnSongClick {
-            val intent = Intent(this, PlayMusicActivity::class.java)
-            //intent.putExtra("songFromHome", ApplicationClass.listChartRealtime[it])
-            intent.putExtra("indexSong", it)
-            ApplicationClass.type = "search"
-            intent.putExtra("type", "search")
-            startActivity(intent)
-        }
+        //Search Music by name in API
         search_bar.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
             androidx.appcompat.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(p0: String?): Boolean {
-                rcvListSong.adapter = songSearchAdapter
+                progressLoadingHome.visibility = View.VISIBLE
                 getSongSearchFormAPI(p0!!)
                 return false
             }
 
             override fun onQueryTextChange(p0: String?): Boolean {
                 if (p0.isNullOrEmpty()) {
-                    rcvListSong.adapter = chartRealTimeAdapter
+                    getTopSong()
                 }
                 return true
             }
         })
+
         //Library
 
         musicLocalAdapter = MusicLocalAdapter(listSongLocal)
@@ -238,11 +225,38 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    private fun getTopSong() {
+        musicTopViewModel = ViewModelProvider(this)[MusicTopViewModel::class.java]
+        musicTopViewModel.getTopSongFromAPI()
+
+        musicTopViewModel.mSongTopLiveData.observe(this, {
+            chartRealTimeAdapter = SongAdapter(it, this)
+            rcvListSong.adapter = chartRealTimeAdapter
+
+            ApplicationClass.listChartRealtime.clear()
+            ApplicationClass.listChartRealtime.addAll(it)
+
+            chartRealTimeAdapter.setOnSongClick { index ->
+                val intent = Intent(this, PlayMusicActivity::class.java)
+                //intent.putExtra("songFromHome", ApplicationClass.listChartRealtime[it])
+                intent.putExtra("indexSong", index)
+                ApplicationClass.type = "chart-realtime"
+                intent.putExtra("type", "chart-realtime")
+                startActivity(intent)
+            }
+            progressLoadingHome.visibility = View.GONE
+        })
+    }
+
     private fun getSongFavourite() {
         val songDatabase = SongDatabase(this)
-        songFavouriteList = songDatabase.getAllSongFavourite()
-        ApplicationClass.listSongFavourite.clear()
-        ApplicationClass.listSongFavourite.addAll(songFavouriteList)
+        try {
+            songFavouriteList = songDatabase.getAllSongFavourite()
+            ApplicationClass.listSongFavourite.clear()
+            ApplicationClass.listSongFavourite.addAll(songFavouriteList)
+        } catch (e: Exception) {
+
+        }
         songFavouriteAdapter = SongFavouriteAdapter(songFavouriteList, this)
         songFavouriteAdapter.setOnSongClick {
             //click
@@ -254,56 +268,36 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getSongSearchFormAPI(query: String) {
-        progressLoadingHome.visibility = View.VISIBLE
-        ApiMusic.search.getSongSearch("artist,song,key,code", 500, query).enqueue(
-            object : Callback<MusicSearch> {
-                override fun onResponse(call: Call<MusicSearch>, response: Response<MusicSearch>) {
-                    songSearchList.clear()
-                    ApplicationClass.listSongSearch.clear()
-                    try {
-                        songSearchList.addAll(response.body()!!.data[0].song)
-                        ApplicationClass.listSongSearch.addAll(songSearchList)
-                        tvError.visibility = View.GONE
-                    } catch (ex: Exception) {
-                        Toast.makeText(baseContext, ex.message, Toast.LENGTH_SHORT).show()
-                        tvError.visibility = View.VISIBLE
-                        tvError.text = "Không có bài hát nào!"
-                    }
-                    songSearchAdapter.notifyDataSetChanged()
-                    progressLoadingHome.visibility = View.GONE
-
+        val songSearchViewModel = ViewModelProvider(this)[MusicSearchViewModel::class.java]
+        songSearchViewModel.getSongSearchFromAPI(query)
+        songSearchViewModel.mSongSearchLiveData.observe(this, {
+            if (it != null) {
+                songSearchList.clear()
+                ApplicationClass.listSongSearch.clear()
+                songSearchList.addAll(it)
+                ApplicationClass.listSongSearch.addAll(songSearchList)
+                tvError.visibility = View.GONE
+                songSearchAdapter = SongSearchAdapter(songSearchList, this)
+                songSearchAdapter.setOnSongClick { index ->
+                    val intent = Intent(this, PlayMusicActivity::class.java)
+                    intent.putExtra("indexSong", index)
+                    ApplicationClass.type = "search"
+                    intent.putExtra("type", "search")
+                    startActivity(intent)
                 }
-
-                override fun onFailure(call: Call<MusicSearch>, t: Throwable) {
-                    Log.e(TAG, "onFailure-error: ${t.message}")
-                    Toast.makeText(baseContext, "Tìm kiếm thất bại!", Toast.LENGTH_LONG).show()
-                    progressLoadingHome.visibility = View.GONE
-                }
+                rcvListSong.adapter = songSearchAdapter
+            } else {
+                rcvListSong.visibility = View.GONE
+                tvError.text = "Không có bài hát nào!"
+                tvError.visibility = View.VISIBLE
             }
-        )
-    }
-
-    private fun getFromAPI() {
-        val builder = Retrofit.Builder().addConverterFactory(GsonConverterFactory.create())
-            .baseUrl(ApplicationClass.BASE_API)
-            .build().create(ApiMusic::class.java)
-        val get = builder.getSong()
-        get.enqueue(object : Callback<Music> {
-            override fun onResponse(call: Call<Music>, response: Response<Music>) {
-                ApplicationClass.listChartRealtime.clear()
-                ApplicationClass.listChartRealtime.addAll(response.body()!!.data.song)
-                progressLoadingHome.visibility = View.GONE
-                chartRealTimeAdapter.notifyDataSetChanged()
-            }
-
-            override fun onFailure(call: Call<Music>, t: Throwable) {
-                Log.d(TAG, "onFailure: ${t.message}")
-            }
+            progressLoadingHome.visibility = View.GONE
         })
     }
 
-
+    @SuppressLint("Range")
     private fun loadLocalSongFromDevice() {
+        listSongLocal.clear()
         val uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val cursor =
             contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC + "!=0", null, null)

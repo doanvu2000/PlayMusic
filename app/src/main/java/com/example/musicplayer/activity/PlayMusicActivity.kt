@@ -13,6 +13,7 @@ import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
@@ -20,19 +21,14 @@ import com.example.musicplayer.ApplicationClass
 import com.example.musicplayer.R
 import com.example.musicplayer.`object`.MusicAudioLocal
 import com.example.musicplayer.adapter.SongRecommendAdapter
-import com.example.musicplayer.api.ApiMusic
 import com.example.musicplayer.database.SongDatabase
 import com.example.musicplayer.database.SongFavourite
 import com.example.musicplayer.model.Song
 import com.example.musicplayer.model.apirecommend.Item
-import com.example.musicplayer.model.apirecommend.MusicRecommend
 import com.example.musicplayer.receiver.NotificationReceiver
 import com.example.musicplayer.service.MusicService
+import com.example.musicplayer.viewmodel.MusicRecommendViewModel
 import kotlinx.android.synthetic.main.activity_play_music.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import java.util.concurrent.TimeUnit
 import kotlin.Exception
 import kotlin.random.Random
 
@@ -172,6 +168,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             }
             handler.postDelayed(runnable, 1000)
         }
+
         musicList = ArrayList()
         when (ApplicationClass.type) {
             "chart-realtime" -> {
@@ -262,6 +259,17 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         if (isFavourite)
             btnFavourite.setImageResource(R.drawable.ic_favourite)
         else btnFavourite.setImageResource(R.drawable.ic_favorite_border)
+
+        //call api recommend
+        if (ApplicationClass.type == "chart-realtime")
+            getListRecommend(song!!.id)
+        else if (ApplicationClass.type == "search") {
+            getListRecommend(songSearch!!.id)
+        } else if (ApplicationClass.type == "favourite") {
+            if (songFavourite!!.isOnline) {
+                getListRecommend(songFavourite!!.id)
+            }
+        }
 
         btnBackToHome.setOnClickListener {
             finish()
@@ -379,33 +387,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
             }
         })
 
-        //call api recommend
-        if (ApplicationClass.type == "chart-realtime")
-            getListRecommend(song!!.id)
-        else if (ApplicationClass.type == "search") {
-            getListRecommend(songSearch!!.id)
-        } else if (ApplicationClass.type == "favourite") {
-            if (songFavourite!!.isOnline) {
-                getListRecommend(songFavourite!!.id)
-            }
-        }
-        recommendAdapter = SongRecommendAdapter(recommendList, this)
-        rcvSongRecommend.adapter = recommendAdapter
-        rcvSongRecommend.layoutManager = LinearLayoutManager(this)
-        recommendAdapter.setOnSongClick {
 
-            val recommendSong = recommendList[it]
-            songRecommend = recommendSong
-//            ApplicationClass.type = "recommend"
-            currentID = recommendSong.id
-            createMedia(
-                recommendSong.id,
-                recommendSong.name,
-                recommendSong.artists_names,
-                recommendSong.thumbnail,
-                recommendSong.duration
-            )
-        }
         val db = SongDatabase(this)
         btnFavourite.setOnClickListener {
             isFavourite = !isFavourite
@@ -550,21 +532,28 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
     }
 
     private fun getListRecommend(id: String) {
-        ApiMusic.api.getSongRecommend("audio", id)
-            .enqueue(object : Callback<MusicRecommend> {
-                override fun onResponse(
-                    call: Call<MusicRecommend>,
-                    response: Response<MusicRecommend>
-                ) {
-                    recommendList.clear()
-                    recommendList.addAll(response.body()!!.data.items)
-                    recommendAdapter.notifyDataSetChanged()
-                }
-
-                override fun onFailure(call: Call<MusicRecommend>, t: Throwable) {
-                    Log.e(TAG, "error on call api recommend: ${t.message}")
-                }
-            })
+        val recommendViewModel = ViewModelProvider(this)[MusicRecommendViewModel::class.java]
+        recommendViewModel.getSongRecommendFromAPI(id)
+        recommendViewModel.mSongRecommendLiveData.observe(this, {
+            recommendList.clear()
+            recommendList.addAll(it)
+            recommendAdapter = SongRecommendAdapter(recommendList, this)
+            rcvSongRecommend.adapter = recommendAdapter
+            rcvSongRecommend.layoutManager = LinearLayoutManager(this)
+            recommendAdapter.setOnSongClick { index ->
+                val recommendSong = recommendList[index]
+                songRecommend = recommendSong
+//            ApplicationClass.type = "recommend"
+                currentID = recommendSong.id
+                createMedia(
+                    recommendSong.id,
+                    recommendSong.name,
+                    recommendSong.artists_names,
+                    recommendSong.thumbnail,
+                    recommendSong.duration
+                )
+            }
+        })
     }
 
 
@@ -705,7 +694,7 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
     }
 
     fun timerConversion(value: Int): String {
-        var audioTime: String = ""
+        var audioTime = ""
         val hrs = value / 3600000
         val mns = value / 60000 % 60000
         val scs = value % 60000 / 1000
@@ -729,13 +718,43 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                 }
             } else {
                 when (ApplicationClass.type) {
-                    "chart-realtime" -> if (indexSong < musicList.size - 1) indexSong++ else indexSong =
-                        0
-                    "search" -> if (indexSong < songSearchList.size - 1) indexSong++ else indexSong =
-                        0
-                    "offline" -> if (indexSong < songLocalList.size) indexSong++ else indexSong = 0
-                    "favourite" -> if (indexSong < songFavouriteList.size) indexSong++ else indexSong =
-                        0
+                    "chart-realtime" -> {
+                        if (indexSong < ApplicationClass.listChartRealtime.size - 1) indexSong++ else indexSong =
+                            0
+                        song = ApplicationClass.listChartRealtime[indexSong]
+                        currentSongName = song!!.name
+                        currentID = song!!.id
+                        currentSongArtist = song!!.artists_names
+                        currentSongThumb = song!!.thumbnail
+                        ApplicationClass.currentSongName = song!!.name
+                    }
+                    "search" -> {
+                        if (indexSong < ApplicationClass.listSongSearch.size - 1) indexSong++ else indexSong =
+                            0
+                        songSearch = ApplicationClass.listSongSearch[indexSong]
+                        currentSongName = songSearch!!.name
+                        currentID = songSearch!!.id
+                        currentSongArtist = songSearch!!.artist
+                        currentSongThumb = "https://photo-resize-zmp3.zadn.vn/" + songSearch!!.thumb
+                    }
+                    "offline" -> {
+                        if (indexSong < ApplicationClass.listSongLocal.size - 1) indexSong++ else indexSong =
+                            0
+                        songLocal = ApplicationClass.listSongLocal[indexSong]
+                        currentSongName = songLocal!!.name
+                        currentID = ""
+                        currentSongArtist = songLocal!!.author
+                        currentSongThumb = ""
+                    }
+                    "favourite" -> {
+                        if (indexSong < ApplicationClass.listSongFavourite.size - 1) indexSong++ else indexSong =
+                            0
+                        songFavourite = ApplicationClass.listSongFavourite[indexSong]
+                        currentSongName = songFavourite!!.name
+                        currentID = songFavourite!!.id
+                        currentSongArtist = songFavourite!!.artist
+                        currentSongThumb = songFavourite!!.thumb
+                    }
                 }
             }
         }
@@ -787,11 +806,9 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
         musicService = null
     }
 
-
     override fun onDestroy() {
         super.onDestroy()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastPlayPause)
     }
-
 }

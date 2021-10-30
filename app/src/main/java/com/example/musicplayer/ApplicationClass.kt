@@ -31,6 +31,7 @@ class ApplicationClass : Application() {
         var listSongFavourite : MutableList<SongFavourite> = ArrayList()
         const val BASE_API = "https://mp3.zing.vn/"
         var type = "chart-realtime"
+        var currentSongName = ""
     }
 
     override fun onCreate() {
