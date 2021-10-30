@@ -125,6 +125,8 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                     "favourite" -> {
                         if (songFavourite!!.isOnline) {
                             Glide.with(this).load(songFavourite!!.thumb).into(imageSongPlay)
+                            tvRecommend.visibility = View.VISIBLE
+                            rcvSongRecommend.visibility = View.VISIBLE
                         } else {
                             btnDownload.visibility = View.INVISIBLE
                             tvRecommend.visibility = View.INVISIBLE
@@ -604,6 +606,8 @@ class PlayMusicActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.On
                     "favourite" -> {
                         if (songFavourite!!.isOnline) {
                             Glide.with(this).load(songFavourite!!.thumb).into(imageSongPlay)
+                            rcvSongRecommend.visibility = View.VISIBLE
+                            tvRecommend.visibility = View.VISIBLE
                         } else {
                             imageSongPlay.setImageResource(R.drawable.musical_note)
                             btnDownload.visibility = View.GONE

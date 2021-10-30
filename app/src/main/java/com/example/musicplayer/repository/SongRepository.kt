@@ -1,5 +1,7 @@
 package com.example.musicplayer.repository
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -86,31 +88,42 @@ class SongRepository {
         })
     }
 
-    fun getSongLocal(): MutableList<MusicAudioLocal> {
-//        var listSongLocal :MutableList<MusicAudioLocal> = ArrayList()
-//        val uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-//        val cursor =
-//            contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC + "!=0", null, null)
-//        if (cursor != null && cursor.moveToFirst()) {
-//            try {
-//                do {
-//                    val title =
-//                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE))
-//                    val duration =
-//                        cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
-//                    val author =
-//                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST))
-//                    val url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
-//                    listSongLocal.add(MusicAudioLocal(title, duration, author, url))
-//                } while (cursor.moveToNext())
-//                ApplicationClass.listSongLocal.clear()
-//                ApplicationClass.listSongLocal.addAll(listSongLocal)
-//            } catch (ex: Exception) {
-//                Log.e("Activity", "getSongLocal: ${ex.message}")
-//            }
-//
-//        }
-//        cursor!!.close()
-        return ArrayList()
+    @SuppressLint("Range")
+    fun getSongLocal(context: Context): MutableList<MusicAudioLocal> {
+        var listSongLocal: MutableList<MusicAudioLocal> = ArrayList()
+        val uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        val cursor = context.contentResolver.query(
+            uri,
+            arrayOf(
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.DATA
+            ),
+            MediaStore.Audio.Media.IS_MUSIC + " != 0",
+            null,
+            null
+        )
+        if (cursor != null && cursor.moveToFirst()) {
+            try {
+                do {
+                    val title =
+                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE))
+                    val duration =
+                        cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
+                    val author =
+                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST))
+                    val url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
+                    listSongLocal.add(MusicAudioLocal(title, duration, author, url))
+                } while (cursor.moveToNext())
+                ApplicationClass.listSongLocal.clear()
+                ApplicationClass.listSongLocal.addAll(listSongLocal)
+            } catch (ex: Exception) {
+                Log.e("Activity", "getSongLocal: ${ex.message}")
+            }
+
+        }
+        cursor!!.close()
+        return listSongLocal
     }
 }

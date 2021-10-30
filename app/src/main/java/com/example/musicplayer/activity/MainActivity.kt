@@ -36,6 +36,7 @@ import com.example.musicplayer.model.Music
 import com.example.musicplayer.model.apisearch.MusicSearch
 import com.example.musicplayer.model.apisearch.Song
 import com.example.musicplayer.repository.SongRepository
+import com.example.musicplayer.viewmodel.MusicLocalViewModel
 import com.example.musicplayer.viewmodel.MusicSearchViewModel
 import com.example.musicplayer.viewmodel.MusicTopViewModel
 import kotlinx.android.synthetic.main.activity_main.*
@@ -51,13 +52,11 @@ import kotlin.system.exitProcess
 class MainActivity : AppCompatActivity() {
     private val TAG = "MainActivity"
     private val PERMISSION_READ = 0
-    private val listSongLocal: MutableList<MusicAudioLocal> = ArrayList()
+    private var listSongLocal: MutableList<MusicAudioLocal> = ArrayList()
     private lateinit var musicLocalAdapter: MusicLocalAdapter
     private lateinit var musicTopViewModel: MusicTopViewModel
 
     companion object {
-        var musicListLocal: MutableList<MusicAudioLocal> = ArrayList()
-        var searchList: MutableList<MusicAudioLocal> = ArrayList()
         lateinit var chartRealTimeAdapter: SongAdapter
         lateinit var songSearchAdapter: SongSearchAdapter
         var songSearchList: MutableList<Song> = ArrayList()
@@ -194,22 +193,12 @@ class MainActivity : AppCompatActivity() {
         })
 
         //Library
-
-        musicLocalAdapter = MusicLocalAdapter(listSongLocal)
         btnLibrary.setOnClickListener {
             if (checkPermission()) {
                 loadLocalSongFromDevice()
             }
-            //local song
-            rcvListSong.adapter = musicLocalAdapter
         }
-        musicLocalAdapter.setOnClickSongItem {
-            //intent to PlayMusicActivity
-            val intent = Intent(this, PlayMusicActivity::class.java)
-            ApplicationClass.type = "offline"
-            intent.putExtra("indexSong", it)
-            startActivity(intent)
-        }
+
 
         tvTopMusic.setOnClickListener {
             rcvListSong.adapter = chartRealTimeAdapter
@@ -298,32 +287,20 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("Range")
     private fun loadLocalSongFromDevice() {
         listSongLocal.clear()
-        val uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val cursor =
-            contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC + "!=0", null, null)
-        if (cursor != null && cursor.moveToFirst()) {
-            try {
-                do {
-                    val title =
-                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE))
-                    val duration =
-                        cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
-                    val author =
-                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST))
-                    val url = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
-                    listSongLocal.add(MusicAudioLocal(title, duration, author, url))
-                } while (cursor.moveToNext())
-                ApplicationClass.listSongLocal.clear()
-                ApplicationClass.listSongLocal.addAll(listSongLocal)
-            } catch (ex: Exception) {
-                Log.e(TAG, "loadLocalSongFromDevice: ${ex.message}")
+        val localViewModel = ViewModelProvider(this)[MusicLocalViewModel::class.java]
+        localViewModel.getMusicLocal()
+        localViewModel.mMusicLocalLiveData.observe(this,{
+            listSongLocal = it
+            musicLocalAdapter = MusicLocalAdapter(listSongLocal)
+            musicLocalAdapter.setOnClickSongItem {
+                //intent to PlayMusicActivity
+                val intent = Intent(this, PlayMusicActivity::class.java)
+                ApplicationClass.type = "offline"
+                intent.putExtra("indexSong", it)
+                startActivity(intent)
             }
-
-        }
-        cursor!!.close()
-        musicLocalAdapter.notifyDataSetChanged()
-        searchList = listSongLocal
-        musicListLocal = listSongLocal
+            rcvListSong.adapter = musicLocalAdapter
+        })
     }
 
     private fun checkPermission(): Boolean {
